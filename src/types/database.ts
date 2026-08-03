@@ -24,6 +24,11 @@ export type Tenant = {
   branding: { primary_color: string; logo_url: string | null; phone: string | null };
   service_area: Record<string, unknown>;
   onboarding_complete: boolean;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  subscription_status: string | null;
+  trial_ends_at: string | null;
+  page_layout: unknown | null;
   created_at: string;
 };
 
@@ -72,4 +77,61 @@ export type Quote = {
   source: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type OrderMessage = {
+  id: string;
+  tenant_id: string;
+  quote_id: string;
+  author_type: "customer" | "staff" | "system";
+  author_name: string | null;
+  body: string;
+  attachments: { name: string; url: string }[];
+  created_at: string;
+};
+
+export type CapacityResource = {
+  id: string;
+  tenant_id: string;
+  name: string;
+  crew_hours_per_day: number;
+  created_at: string;
+};
+
+export type CapacityBlock = {
+  id: string;
+  tenant_id: string;
+  date: string;
+  is_open: boolean;
+  note: string | null;
+  created_at: string;
+};
+
+export type StripeAccount = {
+  tenant_id: string;
+  stripe_account_id: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type OrderPayment = {
+  id: string;
+  tenant_id: string;
+  quote_id: string;
+  amount: number;
+  application_fee_amount: number;
+  status: string;
+  stripe_payment_link_id: string | null;
+  url: string | null;
+  created_at: string;
+};
+
+export type LeadScore = {
+  quote_id: string;
+  tenant_id: string;
+  score: number;
+  factors: Record<string, number | string | boolean>;
+  follow_up_draft: string | null;
+  generated_at: string;
 };

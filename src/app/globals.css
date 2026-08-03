@@ -8,18 +8,30 @@
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
-    --primary: 221 83% 45%;
+    --primary: 234 89% 56%;
     --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96%;
     --secondary-foreground: 222 47% 11%;
-    --muted: 210 40% 96%;
+    --muted: 210 40% 97%;
     --muted-foreground: 215 16% 47%;
-    --accent: 210 40% 94%;
-    --accent-foreground: 222 47% 11%;
+    --accent: 234 89% 97%;
+    --accent-foreground: 234 89% 40%;
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 221 83% 45%;
+    --ring: 234 89% 56%;
+    --success: 152 60% 36%;
+    --success-foreground: 152 60% 96%;
+    --warning: 38 92% 42%;
+    --warning-foreground: 38 92% 97%;
+    --danger: 0 72% 51%;
+    --danger-foreground: 0 72% 97%;
     --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  ::selection {
+    @apply bg-primary/15;
   }
 }
 

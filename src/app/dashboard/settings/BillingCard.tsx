@@ -1,10 +1,31 @@
 "use client";
 
 import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
-export default function BillingCard({ planSlug, planName }: { planSlug: string; planName: string }) {
+function daysLeft(trialEndsAt: string | null) {
+  if (!trialEndsAt) return null;
+  const ms = new Date(trialEndsAt).getTime() - Date.now();
+  return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
+}
+
+export default function BillingCard({
+  planSlug,
+  planName,
+  subscriptionStatus,
+  trialEndsAt,
+}: {
+  planSlug: string;
+  planName: string;
+  subscriptionStatus: string | null;
+  trialEndsAt: string | null;
+}) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isTrialing = subscriptionStatus === "trialing";
+  const remaining = isTrialing ? daysLeft(trialEndsAt) : null;
 
   async function go(endpoint: "/api/stripe/checkout" | "/api/stripe/portal") {
     setLoading(true);
@@ -20,22 +41,30 @@ export default function BillingCard({ planSlug, planName }: { planSlug: string; 
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-6">
-      <h3 className="mb-1 font-semibold">Billing</h3>
-      <p className="mb-4 text-sm text-slate-500">
-        Current plan: <strong>{planName}</strong>
-        {planSlug === "free" && " — Free tier is capped at 20 leads/month with email-only notifications."}
-      </p>
-      {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
-      {planSlug === "free" ? (
-        <button disabled={loading} onClick={() => go("/api/stripe/checkout")} className="rounded-md bg-slate-900 px-4 py-2 text-white disabled:opacity-50">
-          {loading ? "Redirecting..." : "Upgrade to Paid — £97/mo"}
-        </button>
-      ) : (
-        <button disabled={loading} onClick={() => go("/api/stripe/portal")} className="rounded-md border border-slate-300 px-4 py-2 disabled:opacity-50">
-          {loading ? "Redirecting..." : "Manage billing"}
-        </button>
-      )}
-    </div>
+    <Card className="shadow-card">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          Billing
+          {isTrialing && <Badge variant="secondary">Trial · {remaining ?? 0} day{remaining === 1 ? "" : "s"} left</Badge>}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Current plan: <strong className="text-foreground">{planName}</strong>
+          {planSlug === "free" && !isTrialing && " — capped at 20 leads/month, QuoteHaul branding shown, AI/domain/payments locked."}
+          {isTrialing && " — you have full Pro access. Your card is charged automatically when the trial ends unless you cancel."}
+        </p>
+        {error && <p className="mb-3 text-sm text-danger">{error}</p>}
+        {planSlug === "free" && !isTrialing ? (
+          <Button disabled={loading} onClick={() => go("/api/stripe/checkout")}>
+            {loading ? "Redirecting..." : "Upgrade to Pro — £97/mo"}
+          </Button>
+        ) : (
+          <Button variant="outline" disabled={loading} onClick={() => go("/api/stripe/portal")}>
+            {loading ? "Redirecting..." : "Manage billing"}
+          </Button>
+        )}
+      </CardContent>
+    </Card>
   );
 }
