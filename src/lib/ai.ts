@@ -1,4 +1,16 @@
 import type { Quote, Tenant } from "@/types/database";
+import { RICH_DEFAULT_CONTENT } from "@/lib/puck-config";
+
+const PAGE_BLOCK_SCHEMA = `- Hero: heading (text), subheading (text), ctaLabel (text)
+- ValueProps: items (comma-separated short claims, no numbers/stats)
+- FeatureGrid: items (array of {title, body})
+- Steps: items (array of {title, body}), 3 steps describing how the quote-to-booking process works
+- LiveFAQ: heading (text) — content is pulled live from the company's real FAQ, do not invent Q&As
+- CTASection: heading (text), buttonLabel (text)
+- TextBlock: text (text)
+- TrustBadges / Divider: no meaningful editable text`;
+
+export type PuckContent = { type: string; props: Record<string, unknown> }[];
 
 export type LeadScoreResult = { score: number; factors: Record<string, number | string | boolean>; followUpDraft: string };
 
@@ -43,6 +55,36 @@ Reply with strict JSON only, no markdown: {"score": <0-100 integer>, "reasons": 
   } catch (err) {
     console.error("[ai] Gemini scoring failed, using fallback", err);
     return fallback;
+  }
+}
+
+// Gemini "assembly mode" — composes a page from the existing registered Puck
+// blocks only (never invents new component types, see PRD §4.1). Falls back
+// to the rich default template on any failure so a regenerate attempt can
+// never leave the tenant with a broken or empty page.
+export async function generatePageLayout(tenant: Tenant, prompt: string): Promise<PuckContent> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return RICH_DEFAULT_CONTENT;
+
+  const fullPrompt = `Generate a landing page layout for "${tenant.company_name}", a UK/US removal (moving) company, using ONLY these block types and fields:\n${PAGE_BLOCK_SCHEMA}\n\nCompany's request: ${prompt}\n\nReply with strict JSON only, no markdown: an array of {"type": "<BlockName>", "props": {...matching fields for that type...}}. Always start with a Hero block. Give each block props a unique "id" string.`;
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contents: [{ parts: [{ text: fullPrompt }] }], generationConfig: { responseMimeType: "application/json" } }),
+      }
+    );
+    if (!res.ok) throw new Error(`Gemini API ${res.status}`);
+    const data = await res.json();
+    const parsed = JSON.parse(data.candidates?.[0]?.content?.parts?.[0]?.text);
+    if (!Array.isArray(parsed) || parsed.length === 0) throw new Error("Empty layout returned");
+    return parsed;
+  } catch (err) {
+    console.error("[ai] Gemini page generation failed, using default template", err);
+    return RICH_DEFAULT_CONTENT;
   }
 }
 

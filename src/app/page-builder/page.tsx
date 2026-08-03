@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import type { Data } from "@measured/puck";
-import type { Plan, Tenant } from "@/types/database";
+import type { PageLayout, Plan, Tenant } from "@/types/database";
 import { PuckEditor } from "@/components/puck-editor";
 
 export default async function PageBuilderPage() {
@@ -27,5 +26,17 @@ export default async function PageBuilderPage() {
     );
   }
 
-  return <PuckEditor tenantSlug={tenant.slug} initialData={(tenant.page_layout as Data | null) ?? null} />;
+  const [{ data: versions }, { data: faqItems }] = await Promise.all([
+    supabase.from("page_layouts").select("*").eq("tenant_id", tenant.id).order("created_at", { ascending: false }).returns<PageLayout[]>(),
+    supabase.from("faq_items").select("question, answer").eq("tenant_id", tenant.id).order("sort_order"),
+  ]);
+
+  return (
+    <PuckEditor
+      tenantSlug={tenant.slug}
+      faqItems={faqItems ?? []}
+      versions={versions ?? []}
+      activeVersionId={tenant.active_page_layout_id}
+    />
+  );
 }

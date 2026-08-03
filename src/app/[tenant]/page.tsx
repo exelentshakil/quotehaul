@@ -14,14 +14,20 @@ async function getTenant(slug: string) {
   const { data: tenant } = await admin.from("tenants").select("*").eq("slug", slug).single<Tenant>();
   if (!tenant) return null;
   const { data: plan } = await admin.from("plans").select("*").eq("id", tenant.plan_id).single<Plan>();
-  return { tenant, plan };
+  const { data: faqItems } = await admin.from("faq_items").select("question, answer").eq("tenant_id", tenant.id).order("sort_order");
+  let pageLayout: Data | null = null;
+  if (tenant.active_page_layout_id) {
+    const { data: version } = await admin.from("page_layouts").select("data").eq("id", tenant.active_page_layout_id).maybeSingle();
+    pageLayout = (version?.data as Data) ?? null;
+  }
+  return { tenant, plan, faqItems: faqItems ?? [], pageLayout };
 }
 
 export default async function TenantLandingPage({ params }: { params: Promise<{ tenant: string }> }) {
   const { tenant: slug } = await params;
   const result = await getTenant(slug);
   if (!result) return notFound();
-  const { tenant, plan } = result;
+  const { tenant, plan, faqItems, pageLayout } = result;
   const phone = tenant.branding?.phone;
   const showBadge = !plan?.features.remove_platform_badge;
 
@@ -39,8 +45,8 @@ export default async function TenantLandingPage({ params }: { params: Promise<{ 
       </header>
 
       <div className="mx-auto max-w-3xl px-6 py-16">
-        {tenant.page_layout && plan?.slug === "paid" ? (
-          <Render config={puckConfig} data={tenant.page_layout as Data} metadata={{ tenantSlug: slug }} />
+        {pageLayout && plan?.slug === "paid" ? (
+          <Render config={puckConfig} data={pageLayout} metadata={{ tenantSlug: slug, faqItems }} />
         ) : (
           <>
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
