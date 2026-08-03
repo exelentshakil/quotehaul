@@ -25,7 +25,7 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (request.nextUrl.pathname.startsWith("/dashboard") && !user) {
+  if ((request.nextUrl.pathname.startsWith("/dashboard") || request.nextUrl.pathname.startsWith("/page-builder")) && !user) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", request.nextUrl.pathname);
     return NextResponse.redirect(loginUrl);
@@ -35,5 +35,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*"],
+  matcher: ["/dashboard/:path*", "/page-builder/:path*"],
 };

@@ -38,6 +38,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </div>
           <nav className="flex items-center gap-6 text-sm">
             <Link href="/dashboard" className="hover:underline">Leads</Link>
+            <Link href="/dashboard/capacity" className="hover:underline">Capacity</Link>
             <Link href="/dashboard/settings" className="hover:underline">Settings</Link>
             {tenant?.slug && (
               <a href={`/${tenant.slug}`} target="_blank" className="hover:underline">View public funnel ↗</a>

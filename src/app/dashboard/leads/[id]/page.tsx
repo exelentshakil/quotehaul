@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { LeadScore, OrderMessage, Quote } from "@/types/database";
+import type { LeadScore, OrderMessage, Plan, Quote, StripeAccount } from "@/types/database";
 import { ProjectDataPanel } from "@/components/ui/project-data-panel";
 import { OrderMessageThread } from "@/components/order-message-thread";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { LeadScorePanel } from "@/components/lead-score-panel";
+import { RequestPaymentPanel } from "@/components/request-payment-panel";
 import ConfirmForm from "./ConfirmForm";
 
 export default async function LeadDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -21,6 +22,11 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
     .returns<OrderMessage[]>();
 
   const { data: leadScore } = await supabase.from("lead_scores").select("*").eq("quote_id", id).maybeSingle<LeadScore>();
+
+  const { data: tenant } = await supabase.from("tenants").select("plan_id").eq("id", quote.tenant_id).single();
+  const { data: plan } = await supabase.from("plans").select("*").eq("id", tenant?.plan_id).single<Plan>();
+  const { data: stripeAccount } = await supabase.from("stripe_accounts").select("*").eq("tenant_id", quote.tenant_id).maybeSingle<StripeAccount>();
+  const canRequestPayment = plan?.slug === "paid" && stripeAccount?.status === "verified";
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
@@ -44,6 +50,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
         />
 
         <ConfirmForm quote={quote} />
+        {canRequestPayment && <RequestPaymentPanel quoteId={id} defaultAmount={quote.confirmed_price ?? quote.estimate_high ?? 0} />}
       </div>
 
       <div className="space-y-6">
