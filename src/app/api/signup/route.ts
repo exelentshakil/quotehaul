@@ -6,7 +6,6 @@ const schema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
   companyName: z.string().min(2),
-  planSlug: z.enum(["free", "paid"]).default("free"),
   phone: z.string().optional(),
 });
 
@@ -24,7 +23,7 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
-  const { email, password, companyName, planSlug, phone } = parsed.data;
+  const { email, password, companyName, phone } = parsed.data;
 
   const admin = createAdminClient();
 
@@ -38,8 +37,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: userError?.message ?? "Could not create account" }, { status: 400 });
   }
 
-  // 2. Look up the Free plan. Tenants always start Free in the DB — moving to
-  // Paid only ever happens via the Stripe webhook once a subscription is active.
+  // 2. Look up the Free plan as a DB placeholder. Every signup immediately goes
+  // to Stripe Checkout for a 14-day trial next; the webhook flips plan_id to
+  // Paid (subscription_status "trialing") once that checkout completes, and
+  // back to Free if the trial lapses or the subscription is cancelled.
   const { data: plan, error: planError } = await admin.from("plans").select("id").eq("slug", "free").single();
   if (planError || !plan) {
     return NextResponse.json({ error: "Could not set up plan" }, { status: 400 });
@@ -73,5 +74,5 @@ export async function POST(req: Request) {
   await admin.from("tenant_users").insert({ tenant_id: tenant.id, user_id: userData.user.id, role: "owner" });
   await admin.from("rate_configs").insert({ tenant_id: tenant.id });
 
-  return NextResponse.json({ tenantSlug: tenant.id ? tenant.slug : null, wantsPaid: planSlug === "paid" });
+  return NextResponse.json({ tenantSlug: tenant.slug });
 }

@@ -39,10 +39,11 @@ export async function POST(req: Request) {
       const session = event.data.object as Stripe.Checkout.Session;
       const tenantId = session.metadata?.tenant_id || session.client_reference_id;
       if (tenantId && session.customer) {
+        // Real status (active vs trialing) + trial_ends_at is set correctly
+        // right after by the accompanying customer.subscription.created event.
         await setTenantPlan(tenantId, "paid", {
           stripe_customer_id: session.customer as string,
           stripe_subscription_id: session.subscription as string,
-          subscription_status: "active",
         });
       }
       break;
@@ -57,6 +58,7 @@ export async function POST(req: Request) {
         await setTenantPlan(tenantId, isActive ? "paid" : "free", {
           stripe_subscription_id: subscription.id,
           subscription_status: subscription.status,
+          trial_ends_at: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
         });
       }
       break;

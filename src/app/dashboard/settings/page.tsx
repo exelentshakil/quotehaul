@@ -21,7 +21,12 @@ export default async function SettingsPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Settings</h1>
-      <BillingCard planSlug={plan?.slug ?? "free"} planName={plan?.name ?? "Free"} />
+      <BillingCard
+        planSlug={plan?.slug ?? "free"}
+        planName={plan?.name ?? "Free"}
+        subscriptionStatus={tenant.subscription_status}
+        trialEndsAt={tenant.trial_ends_at}
+      />
       <SettingsForm tenant={tenant} rateConfig={rateConfig} />
     </div>
   );

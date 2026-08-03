@@ -84,6 +84,27 @@ export async function sendCustomerReceipt(tenant: Tenant, quote: Quote, retrieva
   }
 }
 
+// Sent when either side posts a new message on an order thread, to the other side.
+export async function notifyNewMessage(tenant: Tenant, quote: Quote, from: "staff" | "customer", body: string, toEmail: string | null) {
+  const resend = getResend();
+  if (!resend || !toEmail) {
+    console.log("[notifications] (stub) would email new order message", quote.id);
+    return;
+  }
+  const orderUrl = from === "staff"
+    ? `${siteUrl()}/${tenant.slug}/retrieve?token=${quote.token}`
+    : `${siteUrl()}/dashboard/leads/${quote.id}`;
+  const fromLabel = from === "staff" ? tenant.company_name : (quote.customer_name || "Your customer");
+  await resend.emails.send({
+    from: fromEmail(),
+    to: toEmail,
+    subject: `Order updated – ${quote.from_postcode} to ${quote.to_postcode}`,
+    html: `<p><strong>${fromLabel}</strong> sent a new message:</p>
+      <blockquote style="margin:0;padding-left:12px;border-left:3px solid #e2e8f0;color:#334155">${body}</blockquote>
+      <p style="margin-top:16px"><a href="${orderUrl}">View and reply</a></p>`,
+  }).catch((err) => console.error("Resend new-message notification failed", err));
+}
+
 // Sent once staff confirm the exact price in the dashboard.
 export async function sendConfirmedQuote(tenant: Tenant, quote: Quote, smsEnabled: boolean) {
   const resend = getResend();

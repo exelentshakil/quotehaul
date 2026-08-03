@@ -24,6 +24,10 @@ export type Tenant = {
   branding: { primary_color: string; logo_url: string | null; phone: string | null };
   service_area: Record<string, unknown>;
   onboarding_complete: boolean;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  subscription_status: string | null;
+  trial_ends_at: string | null;
   created_at: string;
 };
 
@@ -72,4 +76,24 @@ export type Quote = {
   source: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type OrderMessage = {
+  id: string;
+  tenant_id: string;
+  quote_id: string;
+  author_type: "customer" | "staff" | "system";
+  author_name: string | null;
+  body: string;
+  attachments: { name: string; url: string }[];
+  created_at: string;
+};
+
+export type LeadScore = {
+  quote_id: string;
+  tenant_id: string;
+  score: number;
+  factors: Record<string, number | string | boolean>;
+  follow_up_draft: string | null;
+  generated_at: string;
 };
