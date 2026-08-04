@@ -16,6 +16,9 @@ export type Plan = {
   };
 };
 
+export type EmailTemplateType = "new_lead" | "customer_receipt" | "order_message" | "confirmed_quote" | "invoice";
+export type EmailTemplateOverride = { subject: string; body: string };
+
 export type Tenant = {
   id: string;
   slug: string;
@@ -31,6 +34,7 @@ export type Tenant = {
   active_page_layout_id: string | null;
   custom_domain: string | null;
   custom_domain_status: string | null;
+  email_templates: Partial<Record<EmailTemplateType, EmailTemplateOverride>>;
   created_at: string;
 };
 

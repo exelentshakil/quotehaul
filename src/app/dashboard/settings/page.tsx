@@ -8,6 +8,7 @@ import BillingCard from "./BillingCard";
 import ContentGenCard from "./ContentGenCard";
 import DomainsCard from "./DomainsCard";
 import { PageBuilderCard } from "./PageBuilderCard";
+import EmailTemplatesCard from "./EmailTemplatesCard";
 
 // Stripe Connect (PaymentsCard.tsx, /api/stripe/connect/*) is deliberately
 // not rendered here — enabling it means a second identity-verification pass
@@ -51,6 +52,7 @@ export default async function SettingsPage() {
       />
       {plan?.slug === "paid" && <ContentGenCard existingAdCopy={adCopyPage?.content ?? null} />}
       <SettingsForm tenant={tenant} rateConfig={rateConfig} />
+      <EmailTemplatesCard initialTemplates={tenant.email_templates ?? {}} />
     </div>
   );
 }
