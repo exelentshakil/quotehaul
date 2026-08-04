@@ -9,10 +9,11 @@ import { Label } from "@/components/ui/label";
 
 const LABEL_OPTIONS = ["Deposit", "Balance", "Full amount"];
 
-// Posts a formatted invoice request into the existing order-message thread
-// (same channel the customer already gets emailed on) rather than processing
-// payment in-app — the mover takes payment however they already do (bank
-// transfer, cash, their own card reader) once the job itself is confirmed.
+// Creates a real branded invoice (logo, itemized amount, printable/PDF via
+// the browser) and posts a link to it into the existing order-message
+// thread — the mover takes payment however they already do (bank transfer,
+// cash, their own card reader) once the job itself is confirmed, QuoteHaul
+// never processes the payment itself.
 export function SendInvoicePanel({ quoteId, defaultAmount }: { quoteId: string; defaultAmount: number }) {
   const router = useRouter();
   const [amount, setAmount] = useState(defaultAmount);
@@ -20,24 +21,23 @@ export function SendInvoicePanel({ quoteId, defaultAmount }: { quoteId: string; 
   const [instructions, setInstructions] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [sent, setSent] = useState(false);
+  const [invoiceUrl, setInvoiceUrl] = useState<string | null>(null);
 
   async function send() {
     setLoading(true);
     setError(null);
-    const body = `Invoice — ${label}: £${amount.toFixed(2)}${instructions.trim() ? `\n\n${instructions.trim()}` : ""}`;
-    const res = await fetch(`/api/leads/${quoteId}/message`, {
+    const res = await fetch(`/api/leads/${quoteId}/invoice`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ body }),
+      body: JSON.stringify({ amount, label, instructions: instructions.trim() || null }),
     });
+    const data = await res.json().catch(() => null);
     setLoading(false);
     if (!res.ok) {
-      const data = await res.json().catch(() => null);
       setError(data?.error ?? "Could not send the invoice");
       return;
     }
-    setSent(true);
+    setInvoiceUrl(data.invoiceUrl);
     router.refresh();
   }
 
@@ -45,7 +45,7 @@ export function SendInvoicePanel({ quoteId, defaultAmount }: { quoteId: string; 
     <Card className="shadow-card">
       <CardHeader>
         <CardTitle className="text-base">Send invoice</CardTitle>
-        <p className="text-sm text-muted-foreground">Sends an itemized amount into the order thread — the customer gets it by email, and pays however you already collect payment.</p>
+        <p className="text-sm text-muted-foreground">Creates a branded invoice and sends the link into the order thread — the customer gets it by email, and pays however you already collect payment.</p>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex gap-2">
@@ -60,7 +60,11 @@ export function SendInvoicePanel({ quoteId, defaultAmount }: { quoteId: string; 
         </div>
         <Button disabled={loading} onClick={send} className="w-full">{loading ? "Sending..." : "Send invoice"}</Button>
         {error && <p className="text-sm text-danger">{error}</p>}
-        {sent && !error && <p className="text-sm text-success">Sent to the order thread.</p>}
+        {invoiceUrl && !error && (
+          <p className="text-sm text-success">
+            Sent — <a href={invoiceUrl} target="_blank" rel="noreferrer" className="underline">view the invoice</a>
+          </p>
+        )}
       </CardContent>
     </Card>
   );
