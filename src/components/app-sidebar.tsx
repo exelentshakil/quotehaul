@@ -18,11 +18,13 @@ export function AppSidebar({
   companyName,
   userEmail,
   tenantSlug,
+  newLeadsCount = 0,
   ...props
-}: React.ComponentProps<typeof Sidebar> & { companyName: string; userEmail: string; tenantSlug?: string }) {
+}: React.ComponentProps<typeof Sidebar> & { companyName: string; userEmail: string; tenantSlug?: string; newLeadsCount?: number }) {
+  const withBadges = NAV_ITEMS.map((item) => (item.title === "Leads" ? { ...item, badge: newLeadsCount } : item));
   const items = tenantSlug
-    ? [...NAV_ITEMS, { title: "Public funnel", url: `/${tenantSlug}`, icon: ExternalLink, external: true }]
-    : NAV_ITEMS;
+    ? [...withBadges, { title: "Public funnel", url: `/${tenantSlug}`, icon: ExternalLink, external: true }]
+    : withBadges;
 
   return (
     <Sidebar collapsible="icon" {...props}>
