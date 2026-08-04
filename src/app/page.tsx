@@ -3,6 +3,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { Hero } from "@/components/marketing/hero";
 import { ValueBar, FeatureShowcase, DualFeatureShowcase, StatFeatureShowcase, RoiSection, ComparisonSection, HowItWorks, PricingSection, FaqSection, FinalCta } from "@/components/marketing/sections";
 import { KanbanPreview, MessagingPreview, ScorePreview, QuoteFunnelPreview, PageBuilderPreview, CapacityPreview, InvoicingPreview } from "@/components/marketing/product-previews";
+import { InteractiveShowcase } from "@/components/marketing/interactive-showcase";
 
 export default function HomePage() {
   return (
@@ -11,6 +12,7 @@ export default function HomePage() {
       <Hero />
       <ValueBar />
       <RoiSection />
+      <InteractiveShowcase />
 
       <div id="quote-funnel">
         <FeatureShowcase
