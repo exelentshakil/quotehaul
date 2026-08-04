@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Puck, type Data } from "@puckeditor/core";
 import "@puckeditor/core/puck.css";
-import { puckConfig, puckOverrides, PUCK_VIEWPORTS, RICH_DEFAULT_CONTENT, type PuckProps } from "@/lib/puck-config";
+import { puckConfig, puckOverrides, PUCK_VIEWPORTS, buildDefaultContent, type PuckProps } from "@/lib/puck-config";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
@@ -13,7 +13,10 @@ import { Sparkles, Send, PanelRightClose, PanelRightOpen, FileStack, ArrowLeft, 
 import { cn } from "@/lib/utils";
 import type { PageLayout } from "@/types/database";
 
-const DEFAULT_DATA: Data = { content: RICH_DEFAULT_CONTENT, root: {}, zones: {} } as Data;
+// Defensive fallback only — the server always seeds a real page_layouts row
+// (with real tenant data) before rendering this component, so `versions`
+// should never actually be empty in practice.
+const DEFAULT_DATA: Data = { content: buildDefaultContent({ company_name: "", branding: null }), root: {}, zones: {} } as Data;
 
 type ChatEntry = { role: "user" | "assistant"; text: string };
 
@@ -46,6 +49,15 @@ export function PuckEditor({
 
   const selectedVersion = versions.find((v) => v.id === selectedId);
   const currentData: Data = (selectedVersion?.data as Data) ?? DEFAULT_DATA;
+  const [liveData, setLiveData] = useState<Data>(currentData);
+  const isDirty = JSON.stringify(liveData) !== JSON.stringify(currentData);
+
+  // Canvas edits are unsaved until Puck's own Publish button fires `save` —
+  // resync the dirty-tracking baseline whenever the selected draft changes.
+  useEffect(() => {
+    setLiveData(currentData);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId]);
 
   async function save(data: Data) {
     const res = await fetch("/api/settings/page-layout", {
@@ -59,6 +71,7 @@ export function PuckEditor({
       setSelectedId(result.versionId);
       if (!selectedVersion) setVersions((prev) => [{ id: result.versionId, tenant_id: "", name: "Original", data, slug: null, nav_label: null, is_published: false, created_at: new Date().toISOString() }, ...prev]);
     }
+    setLiveData(data);
     router.refresh();
   }
 
@@ -115,10 +128,11 @@ export function PuckEditor({
             </a>
           </Button>
         )}
-        {selectedId && selectedId !== activeId && (
-          <Button size="sm" variant="outline" onClick={() => activate(selectedId)}>Set as live</Button>
+        {isDirty && <Badge variant="secondary">Unsaved changes</Badge>}
+        {!isDirty && selectedId && selectedId !== activeId && (
+          <Button size="sm" onClick={() => activate(selectedId)}>Set as live</Button>
         )}
-        {selectedId === activeId && selectedId && <Badge variant="success">Live</Badge>}
+        {!isDirty && selectedId === activeId && selectedId && <Badge variant="success">Live</Badge>}
 
         <Link href="/page-builder/pages" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
           <FileStack className="h-4 w-4" /> Pages
@@ -137,6 +151,7 @@ export function PuckEditor({
             config={puckConfig}
             data={currentData}
             metadata={{ tenantSlug, faqItems } satisfies PuckProps}
+            onChange={setLiveData}
             onPublish={save}
             viewports={PUCK_VIEWPORTS}
             overrides={puckOverrides}

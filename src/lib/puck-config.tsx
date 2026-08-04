@@ -21,8 +21,9 @@ function imageField(kind: string, shape: "wide" | "square" = "wide"): CustomFiel
 }
 
 // Tenant pages are now full-width (each block manages its own inner
-// max-width, up to max-w-5xl/1024px) rather than trapped in a narrow
-// centered column, so the editor's "Desktop" viewport is sized to comfortably
+// max-width — up to max-w-7xl/1280px for structural/image blocks, narrower
+// max-w-3xl/max-w-xl for pure-text reading blocks) rather than trapped in a
+// narrow centered column, so the editor's "Desktop" viewport is sized to comfortably
 // show a full-width section without the near-100%-zoom cropping Puck's
 // default 1280px would otherwise force in a typical builder panel.
 export const PUCK_VIEWPORTS: Viewports = [
@@ -146,7 +147,7 @@ const SERVICE_GRID_DEFAULT: { title: string; body: string; icon: IconName }[] = 
   { title: "Man & Van", body: "For smaller jobs — quick, careful, and fairly priced.", icon: "Truck" },
   { title: "Office Removals", body: "Minimal downtime, careful handling of equipment.", icon: "Building2" },
 ];
-const IMAGE_TEXT_DEFAULTS = { heading: "About us", body: "Tell customers who you are, how long you've been moving people, and what makes you different.", linkLabel: "Get my estimate" };
+const IMAGE_TEXT_DEFAULTS = { heading: "About us", body: "We've helped hundreds of local families and businesses move stress-free — friendly, careful, and always on time. Every job is treated like it's our own move.", linkLabel: "Get my estimate" };
 const QUOTE_DEFAULT = "Every move is different — that's why we adapt our service to your specific needs.";
 const BENEFITS_DEFAULTS = { heading: "Why choose us", body: "A short paragraph on what makes your company trustworthy — experience, ratings, guarantees." };
 const BENEFITS_ITEMS_DEFAULT = "Fully insured & professional crews, Transparent, no-surprise pricing, Fast, no-obligation quotes, Real reviews from real customers";
@@ -215,7 +216,7 @@ export const puckConfig: Config = {
       defaultProps: { ...IMAGE_TEXT_DEFAULTS, reverse: "false", background: "white" },
       render: ({ heading, body, linkLabel, imageUrl, imageCredit, reverse, background, puck }) => (
         <div className={`w-full ${BG_MAP[(background as BgKey) || "white"]}`}>
-          <div className={`mx-auto grid max-w-5xl items-center gap-8 px-6 py-16 sm:grid-cols-2 ${reverse === "true" ? "[&>*:first-child]:sm:order-2" : ""}`}>
+          <div className={`mx-auto grid max-w-7xl items-center gap-8 px-6 py-16 sm:grid-cols-2 ${reverse === "true" ? "[&>*:first-child]:sm:order-2" : ""}`}>
             <div className="overflow-hidden rounded-2xl bg-muted shadow-card">
               {imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -251,7 +252,7 @@ export const puckConfig: Config = {
         const list: typeof SERVICE_GRID_DEFAULT = items?.length ? items : SERVICE_GRID_DEFAULT;
         return (
           <div className={`w-full ${BG_MAP[(background as BgKey) || "white"]}`}>
-            <div className={`mx-auto grid max-w-5xl gap-5 px-6 py-16 ${COLUMNS_CLASS[columns || "3"]}`}>
+            <div className={`mx-auto grid max-w-7xl gap-5 px-6 py-16 ${COLUMNS_CLASS[columns || "3"]}`}>
               {list.map((s, i) => {
                 const Icon = ICONS[s.icon] ?? Truck;
                 return (
@@ -284,7 +285,7 @@ export const puckConfig: Config = {
         const list = items?.length ? items : FEATURE_GRID_DEFAULT;
         return (
           <div className={`w-full ${BG_MAP[(background as BgKey) || "white"]}`}>
-            <div className={`mx-auto grid max-w-5xl gap-4 px-6 py-16 ${COLUMNS_CLASS[columns || "3"]}`}>
+            <div className={`mx-auto grid max-w-7xl gap-4 px-6 py-16 ${COLUMNS_CLASS[columns || "3"]}`}>
               {list.map((f: { title: string; body: string }, i: number) => (
                 <div key={i} className="rounded-xl border border-border bg-card p-5 shadow-card">
                   <p className="font-semibold">{f.title}</p>
@@ -308,7 +309,7 @@ export const puckConfig: Config = {
         const list = (items || BENEFITS_ITEMS_DEFAULT).split(",").map((i: string) => i.trim());
         return (
           <div className={`w-full bg-foreground text-background ${SPACING_MAP[(spacing as SpacingKey) || "comfortable"]}`}>
-            <div className="mx-auto grid max-w-5xl gap-8 px-6 sm:grid-cols-2">
+            <div className="mx-auto grid max-w-7xl gap-8 px-6 sm:grid-cols-2">
               <div>
                 <h2 className="text-2xl font-bold tracking-tight">{heading || BENEFITS_DEFAULTS.heading}</h2>
                 <p className="mt-3 text-background/70">{body || BENEFITS_DEFAULTS.body}</p>
@@ -445,19 +446,26 @@ export const puckConfig: Config = {
       render: () => <hr className="mx-auto my-2 max-w-5xl border-border" />,
     },
     Header: {
+      label: "Promo banner",
       fields: {
         logoUrl: imageField("logo", "square"),
         tagline: { type: "text" },
         phone: { type: "text" },
         buttonLabel: { type: "text" },
+        links: {
+          type: "array",
+          arrayFields: { label: { type: "text" }, url: { type: "text" } },
+          defaultItemProps: { label: "", url: "" },
+        },
       },
-      defaultProps: HEADER_DEFAULTS,
-      // A promotional top band placed inside the page content, independent
-      // of the site's persistent TenantNav — for a "limited slots this
-      // month" style banner a tenant can add, edit, or remove per page.
-      render: ({ logoUrl, tagline, phone, buttonLabel, puck }) => (
+      defaultProps: { ...HEADER_DEFAULTS, links: [] },
+      // An optional promotional top band a tenant can add on top of the
+      // site's persistent TenantNav (never auto-included by default — see
+      // buildDefaultContent below) — for a "limited slots this month" banner
+      // or an extra nav row, not a replacement for site chrome.
+      render: ({ logoUrl, tagline, phone, buttonLabel, links, puck }) => (
         <div className="w-full border-b border-border bg-muted/40">
-          <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-6 py-3">
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-6 py-3">
             <div className="flex items-center gap-2.5">
               {logoUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -466,6 +474,9 @@ export const puckConfig: Config = {
               <p className="text-sm font-medium">{tagline || HEADER_DEFAULTS.tagline}</p>
             </div>
             <div className="flex items-center gap-4 text-sm">
+              {links?.filter((l: { label: string; url: string }) => l.label).map((l: { label: string; url: string }) => (
+                <a key={l.label} href={l.url} className="font-medium text-muted-foreground hover:text-foreground">{l.label}</a>
+              ))}
               {phone && <a href={`tel:${phone}`} className="font-medium text-muted-foreground hover:text-foreground">{phone}</a>}
               <Button asChild size="sm">
                 <Link href={`/${(puck?.metadata as PuckProps)?.tenantSlug ?? ""}/quote`}>{buttonLabel || HEADER_DEFAULTS.buttonLabel}</Link>
@@ -491,7 +502,7 @@ export const puckConfig: Config = {
         const list = links?.length ? links : FOOTER_LINKS_DEFAULT;
         return (
           <div className="w-full border-t border-border bg-muted/30">
-            <div className="mx-auto flex max-w-5xl flex-col items-center gap-4 px-6 py-10 text-center sm:flex-row sm:justify-between sm:text-left">
+            <div className="mx-auto flex max-w-7xl flex-col items-center gap-4 px-6 py-10 text-center sm:flex-row sm:justify-between sm:text-left">
               <div>
                 {companyName && <p className="font-semibold">{companyName}</p>}
                 <p className="mt-1 text-xs text-muted-foreground">© {new Date().getFullYear()} {companyName || "All rights reserved"}</p>
@@ -521,17 +532,20 @@ export const puckConfig: Config = {
       },
       defaultProps: { heading: "", images: GALLERY_DEFAULT, columns: "3", spacing: "comfortable" },
       render: ({ heading, images, columns, spacing }) => {
-        const list: { imageUrl: string }[] = (images?.length ? images : GALLERY_DEFAULT).filter((i: { imageUrl: string }) => i.imageUrl);
-        if (list.length === 0) return <></>;
+        const list: { imageUrl: string }[] = images?.length ? images : GALLERY_DEFAULT;
         return (
           <div className={`w-full ${SPACING_MAP[(spacing as SpacingKey) || "comfortable"]}`}>
-            <div className="mx-auto max-w-5xl px-6">
+            <div className="mx-auto max-w-7xl px-6">
               {heading && <h2 className="mb-6 text-center text-2xl font-bold tracking-tight">{heading}</h2>}
               <div className={`grid gap-3 ${COLUMNS_CLASS[columns || "3"]}`}>
-                {list.map((img, i) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img key={i} src={img.imageUrl} alt="" className="aspect-square w-full rounded-xl object-cover shadow-card" />
-                ))}
+                {list.map((img, i) =>
+                  img.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={i} src={img.imageUrl} alt="" className="aspect-square w-full rounded-xl object-cover shadow-card" />
+                  ) : (
+                    <div key={i} className="aspect-square w-full rounded-xl bg-gradient-to-br from-primary/15 to-accent" />
+                  )
+                )}
               </div>
             </div>
           </div>
@@ -558,7 +572,7 @@ export const puckConfig: Config = {
         const list: typeof TESTIMONIALS_DEFAULT = items?.length ? items : TESTIMONIALS_DEFAULT;
         return (
           <div className={`w-full ${BG_MAP[(background as BgKey) || "tint"]}`}>
-            <div className="mx-auto max-w-5xl px-6 py-16">
+            <div className="mx-auto max-w-7xl px-6 py-16">
               {heading && <h2 className="mb-8 text-center text-2xl font-bold tracking-tight">{heading}</h2>}
               <div className="grid gap-5 sm:grid-cols-2">
                 {list.map((t, i) => (
@@ -589,16 +603,22 @@ export const puckConfig: Config = {
   },
 };
 
-export const RICH_DEFAULT_CONTENT = [
-  { type: "Header", props: { id: "header-1", ...HEADER_DEFAULTS } },
-  { type: "Hero", props: { id: "hero-1", ...HERO_DEFAULTS, spacing: "spacious" } },
-  { type: "ValueProps", props: { id: "value-1", items: VALUE_PROPS_DEFAULT } },
-  { type: "ServiceGrid", props: { id: "services-1", items: SERVICE_GRID_DEFAULT, columns: "3", background: "white" } },
-  { type: "ImageTextSplit", props: { id: "about-1", ...IMAGE_TEXT_DEFAULTS, reverse: "false", background: "white" } },
-  { type: "QuoteBanner", props: { id: "quote-1", text: QUOTE_DEFAULT, spacing: "comfortable" } },
-  { type: "BenefitsSplit", props: { id: "benefits-1", ...BENEFITS_DEFAULTS, items: BENEFITS_ITEMS_DEFAULT, spacing: "comfortable" } },
-  { type: "Steps", props: { id: "steps-1", items: STEPS_DEFAULT, background: "tint" } },
-  { type: "LiveFAQ", props: { id: "faq-1", heading: "Frequently asked questions" } },
-  { type: "CTASection", props: { id: "cta-1", ...CTA_DEFAULTS, spacing: "comfortable" } },
-  { type: "Footer", props: { id: "footer-1", companyName: "", phone: "", email: "", links: FOOTER_LINKS_DEFAULT } },
-];
+// TenantNav (src/components/tenant-nav.tsx) is already the persistent site
+// header on every public page — a Header block is deliberately NOT seeded
+// here by default (it used to be, and stacked visually with TenantNav).
+// The "Header" block stays available in the picker (labelled "Promo banner")
+// for tenants who want an optional extra band, but is opt-in only.
+export function buildDefaultContent(tenant: { company_name: string; branding?: { phone: string | null } | null }) {
+  return [
+    { type: "Hero", props: { id: "hero-1", ...HERO_DEFAULTS, spacing: "spacious" } },
+    { type: "ValueProps", props: { id: "value-1", items: VALUE_PROPS_DEFAULT } },
+    { type: "ServiceGrid", props: { id: "services-1", items: SERVICE_GRID_DEFAULT, columns: "3", background: "white" } },
+    { type: "ImageTextSplit", props: { id: "about-1", ...IMAGE_TEXT_DEFAULTS, reverse: "false", background: "white" } },
+    { type: "QuoteBanner", props: { id: "quote-1", text: QUOTE_DEFAULT, spacing: "comfortable" } },
+    { type: "BenefitsSplit", props: { id: "benefits-1", ...BENEFITS_DEFAULTS, items: BENEFITS_ITEMS_DEFAULT, spacing: "comfortable" } },
+    { type: "Steps", props: { id: "steps-1", items: STEPS_DEFAULT, background: "tint" } },
+    { type: "LiveFAQ", props: { id: "faq-1", heading: "Frequently asked questions" } },
+    { type: "CTASection", props: { id: "cta-1", ...CTA_DEFAULTS, spacing: "comfortable" } },
+    { type: "Footer", props: { id: "footer-1", companyName: tenant.company_name, phone: tenant.branding?.phone ?? "", email: "", links: FOOTER_LINKS_DEFAULT } },
+  ];
+}

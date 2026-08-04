@@ -19,5 +19,14 @@ export default async function EditSecondaryPage({ params }: { params: Promise<{ 
   ]);
   if (!page || !tenant) return notFound();
 
-  return <SecondaryPageEditor pageId={id} tenantSlug={tenant.slug} faqItems={faqItems ?? []} data={page.data as Data} />;
+  return (
+    <SecondaryPageEditor
+      pageId={id}
+      pageSlug={page.slug}
+      tenantSlug={tenant.slug}
+      faqItems={faqItems ?? []}
+      data={page.data as Data}
+      initialIsPublished={page.is_published}
+    />
+  );
 }

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generatePageLayout } from "@/lib/ai";
 import { searchPhoto, injectHeroPhoto } from "@/lib/unsplash";
-import type { Tenant } from "@/types/database";
+import type { RateConfig, Tenant } from "@/types/database";
 
 // Creates a new saved version from an AI prompt — never overwrites or
 // activates an existing version, so a bad generation is always undoable by
@@ -18,9 +18,10 @@ export async function POST(req: Request) {
   if (!membership) return NextResponse.json({ error: "No company found" }, { status: 404 });
   const { data: tenant } = await supabase.from("tenants").select("*").eq("id", membership.tenant_id).single<Tenant>();
   if (!tenant) return NextResponse.json({ error: "Company not found" }, { status: 404 });
+  const { data: rateConfig } = await supabase.from("rate_configs").select("*").eq("tenant_id", tenant.id).maybeSingle<RateConfig>();
 
   const [content, photo] = await Promise.all([
-    generatePageLayout(tenant, body.prompt),
+    generatePageLayout(tenant, body.prompt, rateConfig),
     searchPhoto(`${body.prompt} moving removal company`),
   ]);
   const contentWithPhoto = injectHeroPhoto(content, photo);

@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generatePageLayout, type PuckContent } from "@/lib/ai";
 import { searchPhoto, injectHeroPhoto } from "@/lib/unsplash";
-import { RICH_DEFAULT_CONTENT } from "@/lib/puck-config";
-import type { Tenant } from "@/types/database";
+import { buildDefaultContent } from "@/lib/puck-config";
+import type { RateConfig, Tenant } from "@/types/database";
 
 function slugify(input: string) {
   return input.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -27,10 +27,11 @@ export async function POST(req: Request) {
   const slug = slugify(body.name);
   if (!slug) return NextResponse.json({ error: "Give the page a real name" }, { status: 400 });
 
-  let content: PuckContent = RICH_DEFAULT_CONTENT;
+  let content: PuckContent = buildDefaultContent(tenant);
   if (body.prompt?.trim()) {
+    const { data: rateConfig } = await supabase.from("rate_configs").select("*").eq("tenant_id", tenant.id).maybeSingle<RateConfig>();
     const [generated, photo] = await Promise.all([
-      generatePageLayout(tenant, `Page titled "${body.name}". ${body.prompt}`),
+      generatePageLayout(tenant, `Page titled "${body.name}". ${body.prompt}`, rateConfig),
       searchPhoto(`${body.prompt} moving removal company`),
     ]);
     content = injectHeroPhoto(generated, photo);
