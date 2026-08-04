@@ -27,6 +27,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         tenantSlug={tenant?.slug}
         newLeadsCount={newLeadsCount}
         avatarUrl={(user.user_metadata?.avatar_url as string | undefined) ?? null}
+        membership={membership}
       />
       <SidebarInset>
         <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-card/95 px-4 backdrop-blur">

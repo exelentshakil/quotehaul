@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionUser, getTenantMembership } from "@/lib/dal";
+import { canAccess } from "@/lib/permissions";
 import type { Quote } from "@/types/database";
 import { StatCard } from "@/components/ui/stat-card";
 import { KanbanBoard } from "@/components/kanban-board";
@@ -13,6 +14,7 @@ export default async function LeadsPage() {
 
   const membership = await getTenantMembership(user.id);
   if (!membership) return <p>No company found for your account.</p>;
+  if (!canAccess(membership, "leads")) redirect("/dashboard");
 
   const supabase = await createClient();
   const { data: quotes } = await supabase

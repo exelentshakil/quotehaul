@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionUser, getTenantMembership } from "@/lib/dal";
+import { canAccess } from "@/lib/permissions";
 import type { Plan, RateConfig, Tenant } from "@/types/database";
 import SettingsForm from "./SettingsForm";
 import BillingCard from "./BillingCard";
@@ -20,6 +21,7 @@ export default async function SettingsPage() {
 
   const membership = await getTenantMembership(user.id);
   if (!membership) return <p>No company found for your account.</p>;
+  if (!canAccess(membership, "settings")) redirect("/dashboard");
 
   const supabase = await createClient();
   const [{ data: tenant }, { data: rateConfig }, { data: adCopyPage }] = await Promise.all([

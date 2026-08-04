@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionUser, getTenantMembership } from "@/lib/dal";
+import { canAccess } from "@/lib/permissions";
 import { estimateJobHours, computeDayStatus } from "@/lib/capacity";
 import type { CapacityBlock, CapacityResource, Plan, Quote, Tenant } from "@/types/database";
 import { CapacityManager } from "@/components/capacity-manager";
@@ -15,6 +16,7 @@ export default async function CapacityPage() {
 
   const membership = await getTenantMembership(user.id);
   if (!membership) return <p>No company found for your account.</p>;
+  if (!canAccess(membership, "capacity")) redirect("/dashboard");
   const tenantId = membership.tenant_id;
 
   const supabase = await createClient();
