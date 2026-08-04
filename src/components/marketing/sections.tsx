@@ -59,7 +59,7 @@ export function DualFeatureShowcase({
   eyebrow: string;
   title: string;
   body: string;
-  items: { id: string; label: string; title: string; body: string; visual: ReactNode }[];
+  items: { id: string; label: string; title: string; body: string; bullets?: string[]; visual: ReactNode }[];
 }) {
   return (
     <div className="border-y border-border bg-gradient-to-b from-accent/40 to-transparent py-20">
@@ -75,6 +75,15 @@ export function DualFeatureShowcase({
               <p className="text-xs font-semibold uppercase tracking-wide text-primary">{item.label}</p>
               <h3 className="mt-1.5 font-display text-lg font-semibold">{item.title}</h3>
               <p className="mt-2 text-sm text-muted-foreground">{item.body}</p>
+              {item.bullets && (
+                <ul className="mt-3 space-y-1.5">
+                  {item.bullets.map((b) => (
+                    <li key={b} className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                      <Check className="mt-0.5 h-3 w-3 shrink-0 text-primary" /> {b}
+                    </li>
+                  ))}
+                </ul>
+              )}
               <div className="mt-5">{item.visual}</div>
             </div>
           ))}

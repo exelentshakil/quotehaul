@@ -51,13 +51,24 @@ export default function HomePage() {
             label: "AI follow-up & scoring",
             title: "Chases the leads you already paid for",
             body: "Quiet leads get scored and drafted a friendly follow-up automatically — your team just reviews and sends.",
+            bullets: [
+              "Every lead scored 0–100 on booking likelihood",
+              "A ready-to-send follow-up drafted in your tone",
+              "Runs automatically — nothing to configure",
+            ],
             visual: <ScorePreview />,
           },
           {
             id: "ai-page-builder",
             label: "AI page builder",
             title: "Describe your page, watch it get built",
-            body: "A real visual editor with premium blocks, plus an AI assistant that assembles a whole page from a sentence.",
+            body: "A real visual editor with 15+ premium blocks — hero, galleries, testimonials, pricing, FAQ — plus an AI assistant that assembles a whole page from a sentence.",
+            bullets: [
+              "Built from your live components, not a fake screenshot",
+              "One sentence in, a full multi-block page out",
+              "Every block fully editable after — text, images, layout",
+              "Preview before you publish, publish when you're ready",
+            ],
             visual: <PageBuilderPreview />,
           },
         ]}
