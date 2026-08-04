@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
 
 export default function SignupPage() {
   const [companyName, setCompanyName] = useState("");
@@ -41,7 +43,7 @@ export default function SignupPage() {
       return;
     }
 
-    // Every account goes straight to Stripe Checkout to start the 14-day trial.
+    // Every account goes straight to Stripe Checkout to start the 3-day trial.
     const checkoutRes = await fetch("/api/stripe/checkout", { method: "POST" });
     const checkoutData = await checkoutRes.json();
     if (checkoutRes.ok && checkoutData.url) {
@@ -53,11 +55,13 @@ export default function SignupPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-16">
+    <>
+    <SiteHeader />
+    <main className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-6 py-16">
       <Card className="shadow-popover">
         <CardHeader>
-          <CardTitle className="text-2xl">Start your 14-day trial</CardTitle>
-          <p className="text-sm text-muted-foreground">Full access to QuoteHaul Pro, free for 14 days. A card is required to start — you won&apos;t be charged until the trial ends, and you can cancel any time.</p>
+          <CardTitle className="text-2xl">Start your 3-day trial</CardTitle>
+          <p className="text-sm text-muted-foreground">Full access to QuoteHaul Pro, free for 3 days. A card is required to start — you won&apos;t be charged until the trial ends, and you can cancel any time.</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -87,5 +91,7 @@ export default function SignupPage() {
         </CardContent>
       </Card>
     </main>
+    <SiteFooter />
+    </>
   );
 }

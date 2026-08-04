@@ -38,7 +38,7 @@ export async function POST(req: Request) {
   }
 
   // 2. Look up the Free plan as a DB placeholder. Every signup immediately goes
-  // to Stripe Checkout for a 14-day trial next; the webhook flips plan_id to
+  // to Stripe Checkout for a 3-day trial next; the webhook flips plan_id to
   // Paid (subscription_status "trialing") once that checkout completes, and
   // back to Free if the trial lapses or the subscription is cancelled.
   const { data: plan, error: planError } = await admin.from("plans").select("id").eq("slug", "free").single();

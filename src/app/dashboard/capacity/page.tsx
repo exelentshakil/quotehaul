@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getSessionUser, getTenantMembership } from "@/lib/dal";
 import { estimateJobHours, computeDayStatus } from "@/lib/capacity";
 import type { CapacityBlock, CapacityResource, Plan, Quote, Tenant } from "@/types/database";
 import { CapacityManager } from "@/components/capacity-manager";
@@ -9,14 +10,14 @@ import { Button } from "@/components/ui/button";
 const DAYS_AHEAD = 14;
 
 export default async function CapacityPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const { data: membership } = await supabase.from("tenant_users").select("tenant_id").eq("user_id", user.id).maybeSingle();
+  const membership = await getTenantMembership(user.id);
   if (!membership) return <p>No company found for your account.</p>;
   const tenantId = membership.tenant_id;
 
+  const supabase = await createClient();
   const { data: tenant } = await supabase.from("tenants").select("*").eq("id", tenantId).single<Tenant>();
   const { data: plan } = await supabase.from("plans").select("*").eq("id", tenant?.plan_id).single<Plan>();
   if (plan?.slug !== "paid") {

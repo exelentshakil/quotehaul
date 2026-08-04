@@ -19,7 +19,7 @@ export async function POST() {
   const stripe = getStripe();
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
-  // Every tenant gets exactly one 14-day trial, the first time they ever check
+  // Every tenant gets exactly one 3-day trial, the first time they ever check
   // out. A tenant re-subscribing after lapsing back to Free (they already have
   // a stripe_subscription_id on record) pays immediately, no second trial.
   const isFirstCheckout = !tenant.stripe_subscription_id;
@@ -32,7 +32,7 @@ export async function POST() {
     client_reference_id: tenant.id,
     subscription_data: {
       metadata: { tenant_id: tenant.id },
-      ...(isFirstCheckout ? { trial_period_days: 14 } : {}),
+      ...(isFirstCheckout ? { trial_period_days: 3 } : {}),
     },
     metadata: { tenant_id: tenant.id },
     success_url: `${siteUrl}/dashboard?trial_started=1`,

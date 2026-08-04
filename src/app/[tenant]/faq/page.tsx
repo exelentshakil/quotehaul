@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Plan, Tenant } from "@/types/database";
+import { TenantNav } from "@/components/tenant-nav";
+import { TenantFooter } from "@/components/tenant-footer";
 
 const DEFAULT_FAQS = [
   { question: "Is the online price a fixed quote?", answer: "No — it's an instant guide based on your move. A member of our team reviews every enquiry and confirms the exact price before anything is booked." },
@@ -19,18 +21,23 @@ export default async function FaqPage({ params }: { params: Promise<{ tenant: st
 
   const { data: customFaqs } = await admin.from("faq_items").select("*").eq("tenant_id", tenant.id).order("sort_order");
   const faqs = customFaqs && customFaqs.length > 0 ? customFaqs : DEFAULT_FAQS;
+  const { data: pages } = await admin.from("page_layouts").select("slug, nav_label, name").eq("tenant_id", tenant.id).eq("is_published", true).not("slug", "is", null);
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-16">
-      <h1 className="mb-8 text-2xl font-bold">Frequently asked questions</h1>
-      <div className="space-y-6">
-        {faqs.map((f) => (
-          <div key={f.question}>
-            <h3 className="font-semibold">{f.question}</h3>
-            <p className="mt-1 text-sm text-slate-600">{f.answer}</p>
-          </div>
-        ))}
+    <main className="flex min-h-screen flex-col">
+      <TenantNav tenantSlug={slug} companyName={tenant.company_name} phone={tenant.branding?.phone ?? null} pages={pages ?? []} />
+      <div className="mx-auto w-full max-w-2xl flex-1 px-6 py-16">
+        <h1 className="mb-8 text-2xl font-bold">Frequently asked questions</h1>
+        <div className="space-y-6">
+          {faqs.map((f) => (
+            <div key={f.question}>
+              <h3 className="font-semibold">{f.question}</h3>
+              <p className="mt-1 text-sm text-slate-600">{f.answer}</p>
+            </div>
+          ))}
+        </div>
       </div>
+      <TenantFooter companyName={tenant.company_name} />
     </main>
   );
 }

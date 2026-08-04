@@ -28,7 +28,20 @@ export type Tenant = {
   stripe_subscription_id: string | null;
   subscription_status: string | null;
   trial_ends_at: string | null;
-  page_layout: unknown | null;
+  active_page_layout_id: string | null;
+  custom_domain: string | null;
+  custom_domain_status: string | null;
+  created_at: string;
+};
+
+export type PageLayout = {
+  id: string;
+  tenant_id: string;
+  name: string;
+  data: unknown;
+  slug: string | null;
+  nav_label: string | null;
+  is_published: boolean;
   created_at: string;
 };
 

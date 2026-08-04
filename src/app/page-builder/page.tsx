@@ -1,18 +1,20 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import type { Data } from "@measured/puck";
-import type { Plan, Tenant } from "@/types/database";
+import { getSessionUser, getTenantMembership } from "@/lib/dal";
+import type { PageLayout, Plan, Tenant } from "@/types/database";
 import { PuckEditor } from "@/components/puck-editor";
+import { RICH_DEFAULT_CONTENT } from "@/lib/puck-config";
+import { searchPhoto, injectHeroPhoto } from "@/lib/unsplash";
 
 export default async function PageBuilderPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const { data: membership } = await supabase.from("tenant_users").select("tenant_id").eq("user_id", user.id).maybeSingle();
+  const membership = await getTenantMembership(user.id);
   if (!membership) return <p>No company found for your account.</p>;
 
+  const supabase = await createClient();
   const { data: tenant } = await supabase.from("tenants").select("*").eq("id", membership.tenant_id).single<Tenant>();
   const { data: plan } = await supabase.from("plans").select("*").eq("id", tenant?.plan_id).single<Plan>();
   if (!tenant) return <p>No company found.</p>;
@@ -27,5 +29,37 @@ export default async function PageBuilderPage() {
     );
   }
 
-  return <PuckEditor tenantSlug={tenant.slug} initialData={(tenant.page_layout as Data | null) ?? null} />;
+  const [{ data: versionsResult }, { data: faqItems }] = await Promise.all([
+    supabase.from("page_layouts").select("*").eq("tenant_id", tenant.id).order("created_at", { ascending: false }).returns<PageLayout[]>(),
+    supabase.from("faq_items").select("question, answer").eq("tenant_id", tenant.id).order("sort_order"),
+  ]);
+
+  let versions = versionsResult ?? [];
+  let activeVersionId = tenant.active_page_layout_id;
+
+  // First-ever visit: give the tenant a real photo by default instead of the
+  // plain gradient placeholder, so the page looks finished, not started.
+  if (versions.length === 0) {
+    const photo = await searchPhoto("moving company house removal truck");
+    const content = injectHeroPhoto(RICH_DEFAULT_CONTENT, photo);
+    const { data: version } = await supabase
+      .from("page_layouts")
+      .insert({ tenant_id: tenant.id, name: "Original", data: { content, root: {}, zones: {} } })
+      .select()
+      .single<PageLayout>();
+    if (version) {
+      versions = [version];
+      activeVersionId = version.id;
+      await supabase.from("tenants").update({ active_page_layout_id: version.id }).eq("id", tenant.id);
+    }
+  }
+
+  return (
+    <PuckEditor
+      tenantSlug={tenant.slug}
+      faqItems={faqItems ?? []}
+      versions={versions}
+      activeVersionId={activeVersionId}
+    />
+  );
 }

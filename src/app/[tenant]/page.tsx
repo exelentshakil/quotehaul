@@ -1,46 +1,28 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Render, type Data } from "@measured/puck";
-import { Phone, ShieldCheck, MapPin, Zap, Lock } from "lucide-react";
-import { createAdminClient } from "@/lib/supabase/admin";
-import type { Plan, Tenant } from "@/types/database";
+import { Render } from "@puckeditor/core";
+import { ShieldCheck, MapPin, Zap, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { tenantThemeStyle } from "@/lib/color";
 import { ChatWidget } from "@/components/chat-widget";
+import { TenantNav } from "@/components/tenant-nav";
 import { puckConfig } from "@/lib/puck-config";
-
-async function getTenant(slug: string) {
-  const admin = createAdminClient();
-  const { data: tenant } = await admin.from("tenants").select("*").eq("slug", slug).single<Tenant>();
-  if (!tenant) return null;
-  const { data: plan } = await admin.from("plans").select("*").eq("id", tenant.plan_id).single<Plan>();
-  return { tenant, plan };
-}
+import { getTenantForPublicPage } from "@/lib/tenant-public";
 
 export default async function TenantLandingPage({ params }: { params: Promise<{ tenant: string }> }) {
   const { tenant: slug } = await params;
-  const result = await getTenant(slug);
+  const result = await getTenantForPublicPage(slug);
   if (!result) return notFound();
-  const { tenant, plan } = result;
-  const phone = tenant.branding?.phone;
+  const { tenant, plan, faqItems, pageLayout, pages } = result;
   const showBadge = !plan?.features.remove_platform_badge;
 
   return (
     <main style={tenantThemeStyle(tenant.branding?.primary_color)} className="min-h-screen">
-      <header className="border-b border-border">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
-          <span className="text-lg font-semibold text-primary">{tenant.company_name}</span>
-          {phone && (
-            <a href={`tel:${phone}`} className="flex items-center gap-1.5 text-sm font-medium hover:underline">
-              <Phone className="h-4 w-4" /> {phone}
-            </a>
-          )}
-        </div>
-      </header>
+      <TenantNav tenantSlug={slug} companyName={tenant.company_name} phone={tenant.branding?.phone ?? null} pages={pages} />
 
       <div className="mx-auto max-w-3xl px-6 py-16">
-        {tenant.page_layout && plan?.slug === "paid" ? (
-          <Render config={puckConfig} data={tenant.page_layout as Data} metadata={{ tenantSlug: slug }} />
+        {pageLayout && plan?.slug === "paid" ? (
+          <Render config={puckConfig} data={pageLayout} metadata={{ tenantSlug: slug, faqItems }} />
         ) : (
           <>
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">

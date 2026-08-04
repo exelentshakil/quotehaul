@@ -1,21 +1,16 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getSessionUser, getTenantMembership } from "@/lib/dal";
+import { AppSidebar } from "@/components/app-sidebar";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { Separator } from "@/components/ui/separator";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const { data: membership } = await supabase
-    .from("tenant_users")
-    .select("tenant_id, tenants(company_name, slug, subscription_status, trial_ends_at)")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  const tenant = membership?.tenants as unknown as
-    | { company_name: string; slug: string; subscription_status: string | null; trial_ends_at: string | null }
-    | undefined;
+  const membership = await getTenantMembership(user.id);
+  const tenant = membership?.tenants;
 
   const isTrialing = tenant?.subscription_status === "trialing";
   const trialDaysLeft = isTrialing && tenant?.trial_ends_at
@@ -23,33 +18,25 @@ export default async function DashboardLayout({ children }: { children: React.Re
     : null;
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      {isTrialing && (
-        <div className="bg-primary px-6 py-2 text-center text-sm text-primary-foreground">
-          {trialDaysLeft} day{trialDaysLeft === 1 ? "" : "s"} left in your Pro trial —{" "}
-          <Link href="/dashboard/settings" className="underline underline-offset-2">manage billing</Link>
+    <SidebarProvider>
+      <AppSidebar companyName={tenant?.company_name ?? "Your company"} userEmail={user.email ?? ""} tenantSlug={tenant?.slug} />
+      <SidebarInset>
+        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-card/95 px-4 backdrop-blur">
+          <SidebarTrigger />
+          <Separator orientation="vertical" className="h-4" />
+          {isTrialing ? (
+            <p className="text-sm text-muted-foreground">
+              {trialDaysLeft} day{trialDaysLeft === 1 ? "" : "s"} left in your Pro trial —{" "}
+              <Link href="/dashboard/settings" className="font-medium text-primary underline-offset-2 hover:underline">manage billing</Link>
+            </p>
+          ) : (
+            <p className="text-sm font-medium">{tenant?.company_name ?? "Your company"}</p>
+          )}
+        </header>
+        <div className="flex-1 p-6">
+          <div className="mx-auto max-w-6xl">{children}</div>
         </div>
-      )}
-      <header className="border-b border-border bg-card">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div>
-            <p className="text-sm text-muted-foreground">QuoteHaul dashboard</p>
-            <p className="font-semibold">{tenant?.company_name ?? "Your company"}</p>
-          </div>
-          <nav className="flex items-center gap-6 text-sm">
-            <Link href="/dashboard" className="hover:underline">Leads</Link>
-            <Link href="/dashboard/capacity" className="hover:underline">Capacity</Link>
-            <Link href="/dashboard/settings" className="hover:underline">Settings</Link>
-            {tenant?.slug && (
-              <a href={`/${tenant.slug}`} target="_blank" className="hover:underline">View public funnel ↗</a>
-            )}
-            <form action="/api/logout" method="post">
-              <button className="hover:underline">Log out</button>
-            </form>
-          </nav>
-        </div>
-      </header>
-      <div className="mx-auto max-w-6xl px-6 py-8">{children}</div>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
