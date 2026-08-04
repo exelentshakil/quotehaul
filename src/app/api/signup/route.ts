@@ -37,10 +37,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: userError?.message ?? "Could not create account" }, { status: 400 });
   }
 
-  // 2. Look up the Free plan as a DB placeholder. Every signup immediately goes
-  // to Stripe Checkout for a 7-day trial next; the webhook flips plan_id to
-  // Paid (subscription_status "trialing") once that checkout completes, and
-  // back to Free if the trial lapses or the subscription is cancelled.
+  // 2. Look up the "free" plan row as a DB placeholder for pre-payment/inactive
+  // state (no free tier is ever offered to customers — see the dashboard lock
+  // in middleware.ts). Every signup immediately goes to Stripe Checkout, no
+  // trial; the webhook flips plan_id to Paid once checkout completes, and
+  // back to this placeholder if the subscription lapses or is cancelled.
   const { data: plan, error: planError } = await admin.from("plans").select("id").eq("slug", "free").single();
   if (planError || !plan) {
     return NextResponse.json({ error: "Could not set up plan" }, { status: 400 });

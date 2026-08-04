@@ -84,6 +84,22 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // No free tier anymore — an inactive/lapsed subscription locks the staff
+  // dashboard down to Settings/Billing (where they can reactivate) rather
+  // than offering a degraded-but-functional free experience. The public
+  // quote funnel is unaffected by this — it's a separate route tree.
+  if (user && request.nextUrl.pathname.startsWith("/dashboard") && !request.nextUrl.pathname.startsWith("/dashboard/settings")) {
+    const { data: membership } = await supabase
+      .from("tenant_users")
+      .select("tenants(subscription_status)")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    const tenantRow = membership?.tenants as unknown as { subscription_status: string | null } | null;
+    if (tenantRow && tenantRow.subscription_status !== "active") {
+      return NextResponse.redirect(new URL("/dashboard/settings", request.url));
+    }
+  }
+
   return response;
 }
 

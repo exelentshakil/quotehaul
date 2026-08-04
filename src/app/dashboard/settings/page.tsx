@@ -41,7 +41,6 @@ export default async function SettingsPage() {
         planSlug={plan?.slug ?? "free"}
         planName={plan?.name ?? "Free"}
         subscriptionStatus={tenant.subscription_status}
-        trialEndsAt={tenant.trial_ends_at}
       />
       <DomainsCard
         slug={tenant.slug}

@@ -13,11 +13,13 @@ export function SiteHeader() {
           <Truck className="h-5 w-5 text-primary" />
           QuoteHaul
         </Link>
-        <nav className="flex items-center gap-4 text-sm">
+        <nav className="flex items-center gap-5 text-sm">
+          <Link href="/#quote-funnel" className="hidden text-muted-foreground hover:text-foreground md:inline">Features</Link>
           <Link href="/#pricing" className="hidden text-muted-foreground hover:text-foreground sm:inline">Pricing</Link>
+          <Link href="/#faq" className="hidden text-muted-foreground hover:text-foreground md:inline">FAQ</Link>
           <Link href="/login" className="text-muted-foreground hover:text-foreground">Log in</Link>
           <Button asChild size="sm">
-            <Link href="/signup">Start free trial</Link>
+            <Link href="/signup">Get started</Link>
           </Button>
         </nav>
       </div>
