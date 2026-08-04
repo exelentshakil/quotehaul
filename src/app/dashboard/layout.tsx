@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Truck, LogOut } from "lucide-react";
 import { getSessionUser, getTenantMembership } from "@/lib/dal";
-import { DashboardNav } from "@/components/dashboard-nav";
-import { Avatar } from "@/components/ui/avatar";
+import { AppSidebar } from "@/components/app-sidebar";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { Separator } from "@/components/ui/separator";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const user = await getSessionUser();
@@ -18,38 +18,25 @@ export default async function DashboardLayout({ children }: { children: React.Re
     : null;
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      {isTrialing && (
-        <div className="bg-primary px-6 py-2 text-center text-sm text-primary-foreground">
-          {trialDaysLeft} day{trialDaysLeft === 1 ? "" : "s"} left in your Pro trial —{" "}
-          <Link href="/dashboard/settings" className="underline underline-offset-2">manage billing</Link>
+    <SidebarProvider>
+      <AppSidebar companyName={tenant?.company_name ?? "Your company"} userEmail={user.email ?? ""} tenantSlug={tenant?.slug} />
+      <SidebarInset>
+        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-card/95 px-4 backdrop-blur">
+          <SidebarTrigger />
+          <Separator orientation="vertical" className="h-4" />
+          {isTrialing ? (
+            <p className="text-sm text-muted-foreground">
+              {trialDaysLeft} day{trialDaysLeft === 1 ? "" : "s"} left in your Pro trial —{" "}
+              <Link href="/dashboard/settings" className="font-medium text-primary underline-offset-2 hover:underline">manage billing</Link>
+            </p>
+          ) : (
+            <p className="text-sm font-medium">{tenant?.company_name ?? "Your company"}</p>
+          )}
+        </header>
+        <div className="flex-1 p-6">
+          <div className="mx-auto max-w-6xl">{children}</div>
         </div>
-      )}
-      <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-              <Truck className="h-4 w-4 text-primary" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">QuoteHaul</p>
-              <p className="text-sm font-semibold leading-tight">{tenant?.company_name ?? "Your company"}</p>
-            </div>
-          </div>
-
-          <DashboardNav tenantSlug={tenant?.slug} />
-
-          <div className="flex items-center gap-3">
-            <Avatar name={tenant?.company_name ?? "?"} />
-            <form action="/api/logout" method="post">
-              <button className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground" aria-label="Log out" title="Log out">
-                <LogOut className="h-4 w-4" />
-              </button>
-            </form>
-          </div>
-        </div>
-      </header>
-      <div className="mx-auto max-w-6xl px-6 py-8">{children}</div>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

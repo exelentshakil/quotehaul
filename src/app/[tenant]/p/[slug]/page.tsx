@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { Render, type Data } from "@measured/puck";
+import { Render, type Data } from "@puckeditor/core";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { tenantThemeStyle } from "@/lib/color";
 import { TenantNav } from "@/components/tenant-nav";

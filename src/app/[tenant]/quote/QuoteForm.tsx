@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ShieldCheck, MapPin, Zap, Lock, ArrowLeft } from "lucide-react";
+import Link from "next/link";
+import { ShieldCheck, MapPin, Zap, Lock, ArrowLeft, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +26,7 @@ export default function QuoteForm({ tenantSlug }: { tenantSlug: string }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ low: number; high: number; token: string; retrievalEnabled: boolean } | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const [fromPostcode, setFromPostcode] = useState("");
   const [toPostcode, setToPostcode] = useState("");
@@ -190,9 +192,24 @@ export default function QuoteForm({ tenantSlug }: { tenantSlug: string }) {
               A member of the team will confirm your exact price shortly. We&apos;ve emailed you a copy of your estimate.
             </CardDescription>
             {result?.retrievalEnabled && (
-              <p className="text-xs text-muted-foreground">
-                Save this link to find your quote again: /{tenantSlug}/retrieve?token={result.token}
-              </p>
+              <div className="mx-auto flex max-w-xs items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-xs">
+                <Link href={`/${tenantSlug}/retrieve?token=${result.token}`} className="flex-1 truncate text-left font-medium text-primary hover:underline">
+                  /{tenantSlug}/retrieve?token={result.token}
+                </Link>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(`${window.location.origin}/${tenantSlug}/retrieve?token=${result.token}`);
+                    setLinkCopied(true);
+                    setTimeout(() => setLinkCopied(false), 2000);
+                  }}
+                  className="flex shrink-0 items-center gap-1 rounded border border-border px-2 py-1 text-muted-foreground hover:bg-background"
+                  aria-label="Copy link"
+                >
+                  {linkCopied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                  {linkCopied ? "Copied" : "Copy"}
+                </button>
+              </div>
             )}
           </div>
         )}

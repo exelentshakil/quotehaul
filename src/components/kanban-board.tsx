@@ -70,7 +70,7 @@ export function KanbanBoard({ quotes }: { quotes: Quote[] }) {
 
   return (
     <DndContext sensors={sensors} onDragStart={(e) => setActiveId(e.active.id as string)} onDragEnd={handleDragEnd}>
-      <div className="flex gap-4 overflow-x-auto pb-4">
+      <div className="scrollbar-thin flex gap-4 overflow-x-auto pb-4">
         {COLUMNS.map((status) => (
           <Column key={status} status={status} quotes={items.filter((q) => q.status === status)} />
         ))}

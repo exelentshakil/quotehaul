@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Render } from "@measured/puck";
+import { Render } from "@puckeditor/core";
 import { ShieldCheck, MapPin, Zap, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { tenantThemeStyle } from "@/lib/color";

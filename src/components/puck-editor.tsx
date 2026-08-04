@@ -3,9 +3,9 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Puck, type Data } from "@measured/puck";
-import "@measured/puck/puck.css";
-import { puckConfig, RICH_DEFAULT_CONTENT, type PuckProps } from "@/lib/puck-config";
+import { Puck, type Data } from "@puckeditor/core";
+import "@puckeditor/core/puck.css";
+import { puckConfig, puckOverrides, PUCK_VIEWPORTS, RICH_DEFAULT_CONTENT, type PuckProps } from "@/lib/puck-config";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
@@ -34,7 +34,7 @@ export function PuckEditor({
   const [selectedId, setSelectedId] = useState<string | null>(activeVersionId ?? versions[0]?.id ?? null);
   const [prompt, setPrompt] = useState("");
   const [generating, setGenerating] = useState(false);
-  const [panelOpen, setPanelOpen] = useState(true);
+  const [panelOpen, setPanelOpen] = useState(false);
   const [chat, setChat] = useState<ChatEntry[]>([
     { role: "assistant", text: "Tell me what you want your page to say — I'll build it from your live components. Try \"focus on long-distance moves, warm and reassuring tone\"." },
   ]);
@@ -125,7 +125,15 @@ export function PuckEditor({
 
       <div className="flex flex-1 overflow-hidden">
         <div className="flex-1">
-          <Puck key={selectedId ?? "default"} config={puckConfig} data={currentData} metadata={{ tenantSlug, faqItems } satisfies PuckProps} onPublish={save} />
+          <Puck
+            key={selectedId ?? "default"}
+            config={puckConfig}
+            data={currentData}
+            metadata={{ tenantSlug, faqItems } satisfies PuckProps}
+            onPublish={save}
+            viewports={PUCK_VIEWPORTS}
+            overrides={puckOverrides}
+          />
         </div>
 
         {panelOpen && (

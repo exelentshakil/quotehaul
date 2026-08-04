@@ -27,7 +27,10 @@ export type LeadScoreResult = { score: number; factors: Record<string, number | 
 export async function scoreLeadAndDraftFollowUp(quote: Quote, tenant: Tenant): Promise<LeadScoreResult> {
   const apiKey = process.env.GEMINI_API_KEY;
   const fallback = ruleBasedFallback(quote, tenant);
-  if (!apiKey) return fallback;
+  if (!apiKey) {
+    console.error("[ai] scoreLeadAndDraftFollowUp: GEMINI_API_KEY is not set in this environment");
+    return fallback;
+  }
 
   const hoursSinceCreated = (Date.now() - new Date(quote.created_at).getTime()) / (1000 * 60 * 60);
   const prompt = `You are scoring a moving-company lead for how likely it is to convert into a booked job, and drafting a short, friendly follow-up message if it's gone quiet.
@@ -49,7 +52,10 @@ Reply with strict JSON only, no markdown: {"score": <0-100 integer>, "reasons": 
         }),
       }
     );
-    if (!res.ok) throw new Error(`Gemini API ${res.status}`);
+    if (!res.ok) {
+      const body = await res.text().catch(() => "<unreadable body>");
+      throw new Error(`Gemini API ${res.status}: ${body}`);
+    }
     const data = await res.json();
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
     const parsed = JSON.parse(text);
@@ -59,7 +65,7 @@ Reply with strict JSON only, no markdown: {"score": <0-100 integer>, "reasons": 
       followUpDraft: parsed.followUp ?? fallback.followUpDraft,
     };
   } catch (err) {
-    console.error("[ai] Gemini scoring failed, using fallback", err);
+    console.error("[ai] scoreLeadAndDraftFollowUp: Gemini call failed, using fallback —", err);
     return fallback;
   }
 }
@@ -70,7 +76,10 @@ Reply with strict JSON only, no markdown: {"score": <0-100 integer>, "reasons": 
 // never leave the tenant with a broken or empty page.
 export async function generatePageLayout(tenant: Tenant, prompt: string): Promise<PuckContent> {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return RICH_DEFAULT_CONTENT;
+  if (!apiKey) {
+    console.error("[ai] generatePageLayout: GEMINI_API_KEY is not set in this environment");
+    return RICH_DEFAULT_CONTENT;
+  }
 
   const fullPrompt = `Generate a landing page layout for "${tenant.company_name}", a UK removal (moving) company, using ONLY these block types and fields:\n${PAGE_BLOCK_SCHEMA}\n\nCompany's request: ${prompt}\n\nReply with strict JSON only, no markdown: an array of {"type": "<BlockName>", "props": {...matching fields for that type...}}. Always start with a Hero block. Give each block props a unique "id" string.`;
 
@@ -83,13 +92,16 @@ export async function generatePageLayout(tenant: Tenant, prompt: string): Promis
         body: JSON.stringify({ contents: [{ parts: [{ text: fullPrompt }] }], generationConfig: { responseMimeType: "application/json" } }),
       }
     );
-    if (!res.ok) throw new Error(`Gemini API ${res.status}`);
+    if (!res.ok) {
+      const body = await res.text().catch(() => "<unreadable body>");
+      throw new Error(`Gemini API ${res.status}: ${body}`);
+    }
     const data = await res.json();
     const parsed = JSON.parse(data.candidates?.[0]?.content?.parts?.[0]?.text);
     if (!Array.isArray(parsed) || parsed.length === 0) throw new Error("Empty layout returned");
     return parsed;
   } catch (err) {
-    console.error("[ai] Gemini page generation failed, using default template", err);
+    console.error("[ai] generatePageLayout: Gemini call failed, using default template —", err);
     return RICH_DEFAULT_CONTENT;
   }
 }
@@ -106,7 +118,10 @@ export type OnboardingContent = {
 export async function generateOnboardingContent(tenant: Tenant): Promise<OnboardingContent> {
   const apiKey = process.env.GEMINI_API_KEY;
   const fallback = onboardingFallback(tenant);
-  if (!apiKey) return fallback;
+  if (!apiKey) {
+    console.error("[ai] generateOnboardingContent: GEMINI_API_KEY is not set in this environment");
+    return fallback;
+  }
 
   const prompt = `Write onboarding content for a UK removal company's website called "${tenant.company_name}". Be warm, trustworthy, concise, no fluff.
 
@@ -121,7 +136,10 @@ Reply with strict JSON only, no markdown: {"faq": [{"question": "...", "answer":
         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json" } }),
       }
     );
-    if (!res.ok) throw new Error(`Gemini API ${res.status}`);
+    if (!res.ok) {
+      const body = await res.text().catch(() => "<unreadable body>");
+      throw new Error(`Gemini API ${res.status}: ${body}`);
+    }
     const data = await res.json();
     const parsed = JSON.parse(data.candidates?.[0]?.content?.parts?.[0]?.text);
     return {
@@ -130,7 +148,7 @@ Reply with strict JSON only, no markdown: {"faq": [{"question": "...", "answer":
       adCopy: parsed.adCopy ?? fallback.adCopy,
     };
   } catch (err) {
-    console.error("[ai] Gemini content generation failed, using fallback", err);
+    console.error("[ai] generateOnboardingContent: Gemini call failed, using fallback —", err);
     return fallback;
   }
 }
@@ -145,7 +163,10 @@ export async function answerFunnelQuestion(
 ): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
   const fallback = `Thanks for your message! For a fast answer, use the "Get my estimate" button above, or call ${tenant.company_name} directly on ${tenant.branding?.phone ?? "the number at the top of this page"}.`;
-  if (!apiKey) return fallback;
+  if (!apiKey) {
+    console.error("[ai] answerFunnelQuestion: GEMINI_API_KEY is not set in this environment");
+    return fallback;
+  }
 
   const faqContext = faq.map((f) => `Q: ${f.question}\nA: ${f.answer}`).join("\n\n");
   const historyText = history.slice(-6).map((h) => `${h.role === "user" ? "Visitor" : "You"}: ${h.text}`).join("\n");
@@ -156,11 +177,14 @@ export async function answerFunnelQuestion(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`,
       { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) }
     );
-    if (!res.ok) throw new Error(`Gemini API ${res.status}`);
+    if (!res.ok) {
+      const body = await res.text().catch(() => "<unreadable body>");
+      throw new Error(`Gemini API ${res.status}: ${body}`);
+    }
     const data = await res.json();
     return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || fallback;
   } catch (err) {
-    console.error("[ai] Gemini chat failed, using fallback", err);
+    console.error("[ai] answerFunnelQuestion: Gemini call failed, using fallback —", err);
     return fallback;
   }
 }

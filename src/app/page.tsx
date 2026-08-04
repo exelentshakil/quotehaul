@@ -1,7 +1,7 @@
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Hero } from "@/components/marketing/hero";
-import { ValueBar, FeatureShowcase, RoiSection, ComparisonSection, HowItWorks, PricingSection, FaqSection, FinalCta } from "@/components/marketing/sections";
+import { ValueBar, FeatureShowcase, DualFeatureShowcase, StatFeatureShowcase, RoiSection, ComparisonSection, HowItWorks, PricingSection, FaqSection, FinalCta } from "@/components/marketing/sections";
 import { KanbanPreview, MessagingPreview, ScorePreview, QuoteFunnelPreview, PageBuilderPreview, CapacityPreview, InvoicingPreview } from "@/components/marketing/product-previews";
 
 export default function HomePage() {
@@ -27,6 +27,7 @@ export default function HomePage() {
           body="Every enquiry lands as a card, not an email you'll forget to reply to. Drag it through your pipeline, see pipeline value at a glance, and never lose track of who's waiting."
           visual={<KanbanPreview />}
           reverse
+          tint
         />
       </div>
       <div id="order-messaging">
@@ -37,23 +38,29 @@ export default function HomePage() {
           visual={<MessagingPreview />}
         />
       </div>
-      <div id="ai-followup">
-        <FeatureShowcase
-          eyebrow="AI follow-up & scoring"
-          title="AI that chases the leads you already paid for"
-          body="Quiet leads get scored and drafted a friendly follow-up automatically — your team just reviews and sends. Jobs won from enquiries that would otherwise go cold."
-          visual={<ScorePreview />}
-          reverse
-        />
-      </div>
-      <div id="ai-page-builder">
-        <FeatureShowcase
-          eyebrow="AI page builder"
-          title="Describe your page, watch it get built"
-          body="A real visual editor with premium, conversion-ready blocks — plus an AI assistant that assembles a whole page from a sentence. No design tool, no developer."
-          visual={<PageBuilderPreview />}
-        />
-      </div>
+
+      <DualFeatureShowcase
+        eyebrow="Built-in AI"
+        title="AI that does the admin, not the talking"
+        body="Two places AI quietly saves your team time — chasing leads that went quiet, and building your website in the first place."
+        items={[
+          {
+            id: "ai-followup",
+            label: "AI follow-up & scoring",
+            title: "Chases the leads you already paid for",
+            body: "Quiet leads get scored and drafted a friendly follow-up automatically — your team just reviews and sends.",
+            visual: <ScorePreview />,
+          },
+          {
+            id: "ai-page-builder",
+            label: "AI page builder",
+            title: "Describe your page, watch it get built",
+            body: "A real visual editor with premium blocks, plus an AI assistant that assembles a whole page from a sentence.",
+            visual: <PageBuilderPreview />,
+          },
+        ]}
+      />
+
       <div id="capacity">
         <FeatureShowcase
           eyebrow="Capacity & calendar"
@@ -64,10 +71,12 @@ export default function HomePage() {
         />
       </div>
       <div id="invoicing">
-        <FeatureShowcase
+        <StatFeatureShowcase
           eyebrow="Invoicing"
           title="Get paid without chasing an invoice"
           body="Request a deposit or final balance straight from the order — paid directly into your own Stripe account. QuoteHaul never holds your money."
+          stat="£0"
+          statLabel="held by QuoteHaul, ever — it lands straight in your own Stripe account"
           visual={<InvoicingPreview />}
         />
       </div>

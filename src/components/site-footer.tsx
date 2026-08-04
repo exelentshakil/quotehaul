@@ -44,7 +44,7 @@ export function SiteFooter() {
     <footer className="border-t border-border">
       <div className="mx-auto grid max-w-6xl gap-8 px-6 py-14 sm:grid-cols-2 lg:grid-cols-5">
         <div className="lg:col-span-1">
-          <div className="flex items-center gap-2 font-semibold">
+          <div className="flex items-center gap-2 font-display font-semibold">
             <Truck className="h-5 w-5 text-primary" /> QuoteHaul
           </div>
           <p className="mt-2 text-sm text-muted-foreground">Instant quote & lead system for removal companies — built by movers, for movers.</p>

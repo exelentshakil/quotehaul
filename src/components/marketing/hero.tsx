@@ -16,7 +16,7 @@ export function Hero() {
       />
       <div className="mx-auto max-w-5xl px-6 pb-16 pt-20 text-center sm:pt-28">
         <Badge variant="secondary" className="mb-5">By movers, for movers</Badge>
-        <h1 className="mx-auto max-w-3xl text-4xl font-bold tracking-tight sm:text-6xl">
+        <h1 className="mx-auto max-w-3xl font-display text-4xl font-bold tracking-tight sm:text-6xl">
           Turn website visitors into <span className="text-primary">booked removals</span>
         </h1>
         <p className="mx-auto mt-6 max-w-xl text-lg text-muted-foreground">

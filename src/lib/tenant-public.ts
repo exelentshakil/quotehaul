@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Plan, Tenant } from "@/types/database";
-import type { Data } from "@measured/puck";
+import type { Data } from "@puckeditor/core";
 
 // Shared by every public tenant page ([tenant]/page.tsx and
 // [tenant]/p/[slug]/page.tsx) — kept out of the page.tsx files themselves

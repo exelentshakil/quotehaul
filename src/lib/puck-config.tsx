@@ -1,10 +1,49 @@
-import type { Config } from "@measured/puck";
+import type { Config, Overrides, Viewports } from "@puckeditor/core";
 import Link from "next/link";
 import {
   Check, Sparkles, Quote as QuoteIcon, Home, Truck, Building2, PackageCheck,
   Warehouse, Users, ShieldCheck, Clock, MapPin, Boxes,
+  LayoutTemplate, Columns2, Grid3x3, LayoutGrid, CheckCircle2, ListOrdered,
+  CheckCheck, HelpCircle, MousePointerClick, Type, Minus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+// Matches the real tenant page container (`max-w-3xl` + `px-6` = 816px) —
+// not Puck's default 1280px "desktop" — so the editor canvas is both
+// accurately WYSIWYG and doesn't need to auto-shrink to an unreadable zoom
+// just to fit the panel.
+export const PUCK_VIEWPORTS: Viewports = [
+  { width: 380, height: "auto", label: "Mobile", icon: "Smartphone" },
+  { width: 816, height: "auto", label: "Desktop", icon: "Monitor" },
+];
+
+const COMPONENT_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  Hero: LayoutTemplate,
+  ImageTextSplit: Columns2,
+  ServiceGrid: Grid3x3,
+  FeatureGrid: LayoutGrid,
+  BenefitsSplit: CheckCircle2,
+  QuoteBanner: QuoteIcon,
+  Steps: ListOrdered,
+  TrustBadges: ShieldCheck,
+  ValueProps: CheckCheck,
+  LiveFAQ: HelpCircle,
+  CTASection: MousePointerClick,
+  TextBlock: Type,
+  Divider: Minus,
+};
+
+export const puckOverrides: Partial<Overrides> = {
+  componentItem: ({ children, name }) => {
+    const Icon = COMPONENT_ICONS[name];
+    return (
+      <div className="flex items-center gap-2">
+        {Icon && <Icon className="h-3.5 w-3.5 text-muted-foreground" />}
+        {children}
+      </div>
+    );
+  },
+};
 
 // A deliberately small set of blocks — the shared component library
 // registered as draggable pieces, not an open-ended page builder. Assembly

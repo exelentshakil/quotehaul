@@ -1,6 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { Data } from "@measured/puck";
+import type { Data } from "@puckeditor/core";
 import { SecondaryPageEditor } from "@/components/secondary-page-editor";
 
 export default async function EditSecondaryPage({ params }: { params: Promise<{ id: string }> }) {
