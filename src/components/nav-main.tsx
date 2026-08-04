@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
 import { SidebarGroup, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 
-export type NavMainItem = { title: string; url: string; icon: LucideIcon; external?: boolean };
+export type NavMainItem = { title: string; url: string; icon: LucideIcon; external?: boolean; badge?: number };
 
 export function NavMain({ items }: { items: NavMainItem[] }) {
   const pathname = usePathname();
@@ -27,6 +27,11 @@ export function NavMain({ items }: { items: NavMainItem[] }) {
                   <Link href={item.url}>
                     <item.icon />
                     <span>{item.title}</span>
+                    {!!item.badge && (
+                      <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
+                        {item.badge}
+                      </span>
+                    )}
                   </Link>
                 )}
               </SidebarMenuButton>

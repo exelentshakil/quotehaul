@@ -1,7 +1,7 @@
-# PRD v4: QuoteHaul — Trial-to-Paid SaaS for Removal Companies
+# PRD v4: QuoteHaul — Pay-from-Day-One SaaS for Removal Companies
 
-**Model:** Single-tenant SaaS, one isolated account per removal company. **14-day free trial with full Pro access (card required)** → converts to **£97/month Pro**, or auto-downgrades to a capped, branded Free tier if the tenant doesn't convert.
-**Status:** Supersedes all earlier drafts of this document (network/broker mode removal, Wayfront-pattern order/messaging, and now: trial-vs-forever-free reversal + launch scope trimmed for solo-founder sustainability). v1's MVP (this repo) is the foundation being extended, not replaced.
+**Model:** Single-tenant SaaS, one isolated account per removal company. **No trial — £97/month Pro, billed immediately at signup**, or a capped, branded Free tier for anyone who doesn't check out.
+**Status:** Supersedes all earlier drafts of this document (network/broker mode removal, Wayfront-pattern order/messaging, trial-vs-forever-free reversal, launch scope trimmed for solo-founder sustainability, and now: **the trial itself has been removed entirely**). Every reference below to a "7-day trial" (§1, §3.3, §5, personas) is superseded — real reasoning: with paid ad spend driving signups, the business can't fund a week-plus wait hoping for conversion; serious buyers pay from day one, and card-required-trial was already most of the filtering benefit anyway. v1's MVP (this repo) is the foundation being extended, not replaced. **As of this revision, everything tagged V1 and V1.5 below has actually shipped** — Kanban, order messaging, AI lead scoring, capacity/calendar, AI content-gen, AI chat concierge, and the Puck-based page builder are all live. §4.5 (Invoicing) has one deliberate deviation from what's written below — see the note at the top of that section for the current, final decision on Stripe Connect.
 **References:**
 - Belfast House Removals (belfasthouseremovals.co.uk) — proves the "instant estimate + human confirms every quote" funnel converts.
 - **Wayfront** (the client-portal SaaS behind the "Wayfront alternative for movers" framing this product started from) — observed live via a real customer (TheITIN's ITIN-application portal): order-centric dashboard, schema-driven order detail view, threaded in-order messaging with file attachments and reply-by-email. This is the concrete UX pattern this PRD builds toward for order/quote management.
@@ -20,7 +20,7 @@ This PRD tags every feature **[V1 — Launch]**, **[V1.5 — Fast-follow]**, or 
 - The Kanban leads board (without automation rules).
 - One AI feature: lead scoring + AI-drafted follow-up copy.
 - Full white-label branding removal + custom domain + SMS, gated behind Pro.
-- Trial/subscription billing (Stripe) that actually charges the card after 14 days.
+- Trial/subscription billing (Stripe) that actually charges the card after 7 days.
 
 **V1.5 — real, planned, but shipped weeks after launch once early customers are paying and giving feedback:** Kanban automation rules, capacity/calendar, invoicing & deposit collection (Stripe Connect), AI onboarding content generation, AI chat concierge, Puck-based drag-drop page builder.
 
@@ -38,12 +38,12 @@ Removal companies today either quote by phone (slow, loses jobs to whoever answe
 
 **One buyer, one product, no marketplace:** every signup is a single removal company running its own fully isolated instance. There is no lead-matching or broker layer between companies — each company owns 100% of its own leads and data. (An earlier draft explored a multi-mover "network/broker" mode inspired by Belfast House Removals' own business model; that's permanently dropped — see §8.)
 
-**Growth model: 14-day full-access trial, card required, not a forever-free tier.** An earlier draft of this PRD proposed a Crisp-style forever-free branded tier with no card required. That's wrong for this product specifically: Crisp's free tier is nearly free to *run* (it's a chat-message relay), so unlimited free users cost almost nothing. This product isn't that — every signup, free or paid, costs real money (Google Distance Matrix calls per quote, transactional emails per order/message, file storage, hosting compute) and real founder time (support), whether or not they ever pay. A no-card, no-expiry free tier is an open-ended liability: it attracts signups with no pressure to ever convert or leave, and a solo founder ends up paying to support people who will never pay him. Comparable products in this exact space (Jobber, Housecall Pro) trial-gate rather than freemium-gate, which is the better-fitting pattern here:
-- **Trial: 14 days, full Pro feature access, card required up front.** Card-on-file both filters for real buying intent (this is a considered $120+/mo B2B purchase, not an impulse tool) and makes conversion frictionless — the card just starts being charged at day 14 unless they cancel.
+**Growth model: 7-day full-access trial, card required, not a forever-free tier.** An earlier draft of this PRD proposed a Crisp-style forever-free branded tier with no card required. That's wrong for this product specifically: Crisp's free tier is nearly free to *run* (it's a chat-message relay), so unlimited free users cost almost nothing. This product isn't that — every signup, free or paid, costs real money (Google Distance Matrix calls per quote, transactional emails per order/message, file storage, hosting compute) and real founder time (support), whether or not they ever pay. A no-card, no-expiry free tier is an open-ended liability: it attracts signups with no pressure to ever convert or leave, and a solo founder ends up paying to support people who will never pay him. Comparable products in this exact space (Jobber, Housecall Pro) trial-gate rather than freemium-gate, which is the better-fitting pattern here:
+- **Trial: 7 days, full Pro feature access, card required up front.** Card-on-file both filters for real buying intent (this is a considered $120+/mo B2B purchase, not an impulse tool) and makes conversion frictionless — the card just starts being charged at day 7 unless they cancel.
 - **After the trial:** either they're now paying Pro, or the account **auto-downgrades to a capped, branded Free tier** (doesn't get deleted) — this keeps the branding-lock marketing benefit ("Powered by QuoteHaul" on their public pages) working indefinitely as a low-cost, bounded-liability retention/reactivation pool, without the risk of unlimited never-paying accounts.
 
 **Why £97/mo is defensible:**
-- The full trial experience (unlimited leads, AI, custom domain, SMS) is what sells the upgrade — they've already felt what losing it would mean by day 14.
+- The full trial experience (unlimited leads, AI, custom domain, SMS) is what sells the upgrade — they've already felt what losing it would mean by day 7.
 - Beyond that, it replaces a $19–59/mo CRM seat *and* an admin doing manual lead follow-up *and* looking unbranded/unprofessional — bundled and specific to this industry's quirks instead of generic field-service software.
 - The value story is measurable: leads converted, hours of admin saved — a P&L line, not just "a tool."
 
@@ -52,7 +52,7 @@ Removal companies today either quote by phone (slow, loses jobs to whoever answe
 ## 2. Personas & Buyer Psychology
 
 ### 2.1 Company Owner / Office Manager (the buyer)
-Not technical. Currently loses leads to slow response times and runs pricing "in their head" or on a spreadsheet. Wants to look as professional as a national brand without hiring a web agency. Signs up for the trial because it's a real, considered decision (card required) — they're evaluating, not just curious. Converts at day 14 because losing unlimited leads, AI follow-up, and their own domain after two weeks of relying on them is a real loss, not an abstract "upgrade for more features" pitch.
+Not technical. Currently loses leads to slow response times and runs pricing "in their head" or on a spreadsheet. Wants to look as professional as a national brand without hiring a web agency. Signs up for the trial because it's a real, considered decision (card required) — they're evaluating, not just curious. Converts at day 7 because losing unlimited leads, AI follow-up, and their own domain after a week of relying on them is a real loss, not an abstract "upgrade for more features" pitch.
 
 ### 2.2 End Customer (the person moving house)
 Wants a price fast, doesn't want to ring five companies, doesn't fully trust an instant online number, wants to know a human will check it before anything's final, and wants an easy way to find their quote again if they don't book immediately. Never wants to create an account for a one-time transaction. Once a quote becomes a real order, they expect it treated like one: a clear status, a place to ask questions and get replies (ideally without logging into yet another portal — email should just work), and confidence someone's actually looking at their move. This is exactly the order/messaging experience observed in the Wayfront/TheITIN reference (§4.1) and is V1, not a later add-on.
@@ -75,7 +75,7 @@ Existing Supabase RLS-per-`tenant_id` pattern is the isolation boundary, unchang
 
 ### 3.3 Trial & Subscription Billing **[V1 — Launch]**
 This is the mechanism that makes the whole growth model real, so it's core V1, not an afterthought bolted on after the product exists:
-- **Stripe Billing (Subscriptions)** — a distinct integration from Stripe Connect (§4.5, which is about *tenants'* customers paying *them*; this is about the tenant paying *us*). Card collected at signup via Stripe Checkout/Elements, subscription created in `trialing` status with a 14-day trial period, auto-transitions to `active` (and starts billing) unless canceled.
+- **Stripe Billing (Subscriptions)** — a distinct integration from Stripe Connect (§4.5, which is about *tenants'* customers paying *them*; this is about the tenant paying *us*). Card collected at signup via Stripe Checkout/Elements, subscription created in `trialing` status with a 7-day trial period, auto-transitions to `active` (and starts billing) unless canceled.
 - **`tenants.stripe_customer_id`, `tenants.stripe_subscription_id`** track the relationship; Stripe webhooks (`customer.subscription.trial_will_end`, `.updated`, `.deleted`) drive `tenants.plan` transitions.
 - **Downgrade job**: a scheduled function (Vercel Cron or Supabase scheduled function) checks for trials past `trial_ends_at` with no active subscription and flips `plan` to `free`, applying the lead cap and branding lock immediately — no manual intervention needed to keep the founder from having to babysit this daily.
 - A trial-ending reminder email (day 11 or 12) via the existing Resend integration, so no one is surprised by the charge.
@@ -121,16 +121,15 @@ This is the mechanism that makes the whole growth model real, so it's core V1, n
 - **Deferred to V1.5 deliberately**: this is genuinely valuable but isn't what closes the first sale (most 1–3 van companies still track this in their heads or a shared calendar today) and the auto-close/override logic is real engineering to get right. It's the first thing to build once there's paying-customer feedback on how they actually want to define "capacity."
 - **[V2+]** Crew/vehicle assignment per booking — full dispatch-board territory, overlaps with SmartMoving/Supermove's specialty.
 
-### 4.5 Invoicing & Deposit Collection **[V1.5 — Pro-only, optional utility]**
+### 4.5 Invoicing & Deposit Collection **[Shipped, then deliberately un-surfaced]**
 
-Moving is not a prepay-then-fulfill business like e-commerce — customers expect to pay on move day or after inspection. Payments here are a **staff-triggered convenience feature layered on top of an already-confirmed order**, never a blocking step for the customer, matching how Wayfront itself treats it (a separate "Invoices" area).
+Moving is not a prepay-then-fulfill business like e-commerce — customers expect to pay on move day or after inspection, and confirmed practice in this market (per direct operator feedback) is: **diary/availability has to be confirmed before payment is even a sensible conversation** — a customer booking "tomorrow" is often actually 7–10 days out once existing commitments are accounted for, and the norm is to invoice **after** delivery, collected however the company already takes payment (bank transfer, card reader, cash). Taking payment upfront, before a slot is even confirmed, is unusual here.
 
-- **Stripe Connect (Standard/Express) onboarding** per tenant — Stripe's hosted flow collects KYC.
-- **"Request payment" action on an order** — staff picks an amount (deposit or final balance) and QuoteHaul generates a Stripe Payment Link, dropped into the order thread and a notification email.
-- **Destination charges** (`transfer_data[destination]`) — funds land directly in the tenant's Stripe balance at charge time, Stripe's own payout schedule handles the rest. No custom ledger, no withdrawal button.
-- `application_fee_amount` wired in at 0% by default for a possible future platform fee.
-- **Deferred to V1.5 deliberately**: it's real, valuable, and now cheap to build (no ledger/withdrawal UI needed) — but it's not why a company says yes to £97/mo on day one, and Stripe Connect onboarding/webhook reliability is exactly the kind of support surface area worth adding once there's revenue to justify the QA time.
-- **[V2+]** Deposit-vs-balance split payments, refund workflows, dispute/chargeback handling UI.
+- **Stripe Connect (Standard/Express) onboarding, destination charges, "Request payment" Stripe Payment Links** — all fully built and functional (`/api/stripe/connect/*`, `PaymentsCard.tsx`, `request-payment-panel.tsx`). Confirmed working end-to-end.
+- **Final decision: not surfaced in the product UI.** Two reasons, both final: (1) it doesn't match the actual industry workflow above — a Payment Link sent before a job is even confirmed is the wrong sequencing; (2) activating Connect requires the founder to complete a second identity-verification pass on their own personal Stripe account (business profile + ID document review) purely to enable a feature that doesn't fit the workflow — not worth the personal-account risk for a feature the target customer wouldn't use as designed anyway.
+- **What ships instead**: a **"Send invoice" panel** (`send-invoice-panel.tsx`) on the order/lead detail page — staff picks a label (Deposit/Balance/Full amount) and amount, optionally adds their own payment instructions (bank details, a payment link they already use), and it posts as a formatted message into the existing order thread — reusing the already-built messaging + reply-by-email infrastructure (§4.1), not a new payment rail.
+- The Stripe Connect code is not deleted — if a future customer segment or market has a workflow where in-app collection actually fits, it's a flag-flip away, not a rebuild.
+- **[V2+, contingent]** Revisit Stripe Connect only if a real customer explicitly asks for in-app payment collection with a workflow that actually fits (e.g. deposit-only, requested after a slot is confirmed) — not proactively.
 
 ### 4.6 AI Features **[Pro-only]**
 
@@ -162,7 +161,7 @@ Moving is not a prepay-then-fulfill business like e-commerce — customers expec
 
 ## 5. Pricing & Packaging
 
-| | **14-day Trial** | **Pro — £97/month** | **Free (post-trial, downgraded)** |
+| | **7-day Trial** | **Pro — £97/month** | **Free (post-trial, downgraded)** |
 |---|---|---|---|
 | Card required | ✅ Yes, at signup | (continues from trial) | No |
 | Quote funnel, wizard, order/messaging | ✅ Full | ✅ Full | ✅ (branded) |
@@ -175,7 +174,7 @@ Moving is not a prepay-then-fulfill business like e-commerce — customers expec
 | SMS notifications | ✅ | ✅ | — |
 | Capacity/calendar, invoicing, AI content-gen, AI chat | V1.5 — not in initial launch for any tier | | |
 
-- **No forever-free signup path** — every new tenant starts on the 14-day trial, card required. This is the reversal from the earlier freemium draft (see §1 for the reasoning).
+- **No forever-free signup path** — every new tenant starts on the 7-day trial, card required. This is the reversal from the earlier freemium draft (see §1 for the reasoning).
 - **Downgrade, not deletion** — a non-converting trial becomes the branded Free tier automatically, preserving the long-term branding-lock/reactivation value without the open-ended cost of unlimited free accounts.
 - **Single paid tier** — one clear conversion event (trial → Pro), no multi-tier ladder to explain.
 
@@ -258,7 +257,7 @@ Existing tables retained as-is: `plans`, `tenants`, `tenant_users`, `rate_config
 5. **Kanban board** (no automation): shadcn/ui + dnd-kit, customizable pipeline stages.
 6. **AI lead scoring + follow-up drafting** (single AI feature, manual send).
 7. **Custom domains** via Vercel Domains API.
-8. **Pilot** with 2–3 real companies on the actual trial flow (including the card charge at day 14) before public launch.
+8. **Pilot** with 2–3 real companies on the actual trial flow (including the card charge at day 7) before public launch.
 9. **Public launch.**
 
 **V1.5 — immediate fast-follow, funded by early revenue, roughly in this order:** capacity/calendar → Kanban automation rules → invoicing/Stripe Connect → AI onboarding content generation → AI chat concierge → Puck page builder. Sequence adjusts based on what paying customers actually ask for first.

@@ -3,6 +3,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { Hero } from "@/components/marketing/hero";
 import { ValueBar, FeatureShowcase, DualFeatureShowcase, StatFeatureShowcase, RoiSection, ComparisonSection, HowItWorks, PricingSection, FaqSection, FinalCta } from "@/components/marketing/sections";
 import { KanbanPreview, MessagingPreview, ScorePreview, QuoteFunnelPreview, PageBuilderPreview, CapacityPreview, InvoicingPreview } from "@/components/marketing/product-previews";
+import { InteractiveShowcase } from "@/components/marketing/interactive-showcase";
 
 export default function HomePage() {
   return (
@@ -11,6 +12,7 @@ export default function HomePage() {
       <Hero />
       <ValueBar />
       <RoiSection />
+      <InteractiveShowcase />
 
       <div id="quote-funnel">
         <FeatureShowcase
@@ -73,10 +75,10 @@ export default function HomePage() {
       <div id="invoicing">
         <StatFeatureShowcase
           eyebrow="Invoicing"
-          title="Get paid without chasing an invoice"
-          body="Request a deposit or final balance straight from the order — paid directly into your own Stripe account. QuoteHaul never holds your money."
+          title="Send an invoice, get paid however you already do"
+          body="Once a job's confirmed and done, send a deposit or balance request straight into the order thread — the customer gets it by email. You get paid your own way: bank transfer, card reader, cash. QuoteHaul never touches your money."
           stat="£0"
-          statLabel="held by QuoteHaul, ever — it lands straight in your own Stripe account"
+          statLabel="held by QuoteHaul, ever"
           visual={<InvoicingPreview />}
         />
       </div>

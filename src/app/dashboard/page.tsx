@@ -83,6 +83,15 @@ export default async function OverviewPage() {
   const bookedTotal = quotes.filter((q) => q.status === "booked").length;
   const conversionRate = quotes.length > 0 ? Math.round((bookedTotal / quotes.length) * 100) : 0;
 
+  const conversionRateFor = (from: Date, to: Date) => {
+    const cohort = quotes.filter((q) => new Date(q.created_at) >= from && new Date(q.created_at) < to);
+    if (cohort.length === 0) return null;
+    return (cohort.filter((q) => q.status === "booked").length / cohort.length) * 100;
+  };
+  const conversionThisMonth = conversionRateFor(thisMonth, new Date(now.getTime() + 24 * 60 * 60 * 1000));
+  const conversionLastMonth = conversionRateFor(lastMonth, thisMonth);
+  const conversionTrend = conversionThisMonth !== null && conversionLastMonth !== null ? conversionThisMonth - conversionLastMonth : null;
+
   const revenueFor = (from: Date, to: Date) =>
     quotes
       .filter((q) => q.status === "booked" && new Date(q.updated_at) >= from && new Date(q.updated_at) < to)
@@ -91,15 +100,25 @@ export default async function OverviewPage() {
   const revenueLastMonth = revenueFor(lastMonth, thisMonth);
   const revenueTrend = pctChange(revenueThisMonth, revenueLastMonth);
 
-  const firstStaffReplyHours: number[] = [];
-  for (const q of quotes) {
-    const firstStaffMsg = messages
-      .filter((m) => m.quote_id === q.id && m.author_type === "staff")
-      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())[0];
-    if (firstStaffMsg) firstStaffReplyHours.push(hoursBetween(q.created_at, firstStaffMsg.created_at));
-  }
-  const avgResponseHours = firstStaffReplyHours.length > 0
-    ? firstStaffReplyHours.reduce((a, b) => a + b, 0) / firstStaffReplyHours.length
+  const firstStaffReplyFor = (from: Date, to: Date) => {
+    const hours = quotes
+      .filter((q) => new Date(q.created_at) >= from && new Date(q.created_at) < to)
+      .map((q) => {
+        const firstStaffMsg = messages
+          .filter((m) => m.quote_id === q.id && m.author_type === "staff")
+          .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())[0];
+        return firstStaffMsg ? hoursBetween(q.created_at, firstStaffMsg.created_at) : null;
+      })
+      .filter((h): h is number => h !== null);
+    return hours.length > 0 ? hours.reduce((a, b) => a + b, 0) / hours.length : null;
+  };
+  const avgResponseHours = firstStaffReplyFor(new Date(0), new Date(now.getTime() + 24 * 60 * 60 * 1000));
+  const avgResponseThisMonth = firstStaffReplyFor(thisMonth, new Date(now.getTime() + 24 * 60 * 60 * 1000));
+  const avgResponseLastMonth = firstStaffReplyFor(lastMonth, thisMonth);
+  // Inverted: a faster (lower) response time is an improvement, so a
+  // decrease in hours should read as a positive/"increase"-styled badge.
+  const responseTrend = avgResponseThisMonth !== null && avgResponseLastMonth !== null && avgResponseLastMonth !== 0
+    ? -((avgResponseThisMonth - avgResponseLastMonth) / avgResponseLastMonth) * 100
     : null;
 
   const aiFollowUpsThisMonth = scores.filter((s) => new Date(s.generated_at) >= thisMonth).length;
@@ -112,6 +131,7 @@ export default async function OverviewPage() {
       return d >= now && d <= weekFromNow;
     })
     .sort((a, b) => new Date(a.move_date as string).getTime() - new Date(b.move_date as string).getTime());
+  const upcomingBookedPct = upcomingJobs.length > 0 ? Math.round((upcomingJobs.filter((q) => q.status === "booked").length / upcomingJobs.length) * 100) : 0;
 
   const dailyBuckets = Array.from({ length: 14 }, (_, i) => {
     const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (13 - i));
@@ -120,14 +140,24 @@ export default async function OverviewPage() {
     return { day: dayStart.toLocaleDateString("en-GB", { day: "numeric", month: "short" }), Leads: count };
   });
 
+  const revenueDailyBuckets = Array.from({ length: 14 }, (_, i) => {
+    const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (13 - i));
+    const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+    const sum = quotes
+      .filter((q) => q.status === "booked" && new Date(q.updated_at) >= dayStart && new Date(q.updated_at) < dayEnd)
+      .reduce((s, q) => s + (q.confirmed_price ?? q.estimate_high ?? 0), 0);
+    return { day: dayStart.toLocaleDateString("en-GB", { day: "numeric", month: "short" }), Revenue: sum };
+  });
+
   const statusBreakdown = (Object.keys(STATUS_LABELS) as QuoteStatus[])
     .map((status) => ({ name: STATUS_LABELS[status], value: quotes.filter((q) => q.status === status).length, color: STATUS_COLORS[status] }))
     .filter((d) => d.value > 0);
 
-  type ActivityEvent = { at: string; node: React.ReactNode };
+  type ActivityEvent = { at: string; href: string; node: React.ReactNode };
   const activity: ActivityEvent[] = [
     ...quotes.map((q) => ({
       at: q.created_at,
+      href: `/dashboard/leads/${q.id}`,
       node: (
         <>
           <Avatar name={q.customer_name ?? "?"} className="h-7 w-7 text-[10px]" />
@@ -141,6 +171,7 @@ export default async function OverviewPage() {
     })),
     ...messages.map((m) => ({
       at: m.created_at,
+      href: `/dashboard/leads/${m.quote_id}`,
       node: (
         <>
           <Avatar name={m.author_name ?? (m.author_type === "customer" ? "Customer" : "Team")} className="h-7 w-7 text-[10px]" />
@@ -162,7 +193,30 @@ export default async function OverviewPage() {
         <p className="mt-1 text-sm text-muted-foreground">How {companyName} is performing right now.</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <Card className="overflow-hidden p-6 shadow-card sm:p-8">
+        <div className="grid gap-6 sm:grid-cols-[1fr_1.3fr] sm:items-center">
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="flex items-center gap-1.5 text-sm text-muted-foreground"><Wallet className="h-4 w-4" /> Revenue booked this month</p>
+              <BadgeDelta deltaType={deltaTypeFor(revenueTrend)} size="xs">{revenueTrend === null ? "New" : `${Math.round(revenueTrend)}%`}</BadgeDelta>
+            </div>
+            <p className="mt-2 font-display text-5xl font-bold tracking-tight">£{revenueThisMonth.toLocaleString()}</p>
+            <p className="mt-2 text-sm text-muted-foreground">{bookedTotal} job{bookedTotal === 1 ? "" : "s"} booked, all time — the number that pays for QuoteHaul</p>
+          </div>
+          <AreaChart
+            data={revenueDailyBuckets}
+            index="day"
+            categories={["Revenue"]}
+            colors={["emerald"]}
+            showLegend={false}
+            showYAxis={false}
+            showGridLines={false}
+            className="h-28"
+          />
+        </div>
+      </Card>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="p-5 shadow-card">
           <div className="flex items-center justify-between">
             <p className="flex items-center gap-1.5 text-sm text-muted-foreground"><Users className="h-3.5 w-3.5" /> Leads this month</p>
@@ -184,37 +238,29 @@ export default async function OverviewPage() {
         </Card>
 
         <Card className="p-5 shadow-card">
-          <p className="flex items-center gap-1.5 text-sm text-muted-foreground"><Percent className="h-3.5 w-3.5" /> Lead → booked conversion</p>
+          <div className="flex items-center justify-between">
+            <p className="flex items-center gap-1.5 text-sm text-muted-foreground"><Percent className="h-3.5 w-3.5" /> Conversion</p>
+            <BadgeDelta deltaType={deltaTypeFor(conversionTrend)} size="xs">{conversionTrend === null ? "New" : `${Math.round(conversionTrend)}pt`}</BadgeDelta>
+          </div>
           <p className="mt-1.5 text-3xl font-semibold tracking-tight">{conversionRate}%</p>
           <p className="mt-2 text-xs text-muted-foreground">{bookedTotal} of {quotes.length} leads booked, all time</p>
         </Card>
 
         <Card className="p-5 shadow-card">
           <div className="flex items-center justify-between">
-            <p className="flex items-center gap-1.5 text-sm text-muted-foreground"><Wallet className="h-3.5 w-3.5" /> Revenue booked this month</p>
-            <BadgeDelta deltaType={deltaTypeFor(revenueTrend)} size="xs">{revenueTrend === null ? "New" : `${Math.round(revenueTrend)}%`}</BadgeDelta>
+            <p className="flex items-center gap-1.5 text-sm text-muted-foreground"><Clock className="h-3.5 w-3.5" /> First reply time</p>
+            <BadgeDelta deltaType={deltaTypeFor(responseTrend)} size="xs">{responseTrend === null ? "New" : `${Math.round(responseTrend)}%`}</BadgeDelta>
           </div>
-          <p className="mt-1.5 text-3xl font-semibold tracking-tight">£{revenueThisMonth.toLocaleString()}</p>
-        </Card>
-
-        <Card className="p-5 shadow-card">
-          <p className="flex items-center gap-1.5 text-sm text-muted-foreground"><Clock className="h-3.5 w-3.5" /> Avg. time to first reply</p>
           <p className="mt-1.5 text-3xl font-semibold tracking-tight">
             {avgResponseHours === null ? "—" : avgResponseHours < 1 ? `${Math.round(avgResponseHours * 60)}m` : `${avgResponseHours.toFixed(1)}h`}
           </p>
-          <p className="mt-2 text-xs text-muted-foreground">From lead submitted to first staff reply</p>
+          <p className="mt-2 text-xs text-muted-foreground">Lead submitted → first staff reply</p>
         </Card>
 
         <Card className="p-5 shadow-card">
           <p className="flex items-center gap-1.5 text-sm text-muted-foreground"><Sparkles className="h-3.5 w-3.5" /> AI follow-ups drafted</p>
           <p className="mt-1.5 text-3xl font-semibold tracking-tight">{aiFollowUpsThisMonth}</p>
           <p className="mt-2 text-xs text-muted-foreground">This month, for leads that went quiet</p>
-        </Card>
-
-        <Card className="p-5 shadow-card">
-          <p className="flex items-center gap-1.5 text-sm text-muted-foreground"><Truck className="h-3.5 w-3.5" /> Jobs in the next 7 days</p>
-          <p className="mt-1.5 text-3xl font-semibold tracking-tight">{upcomingJobs.length}</p>
-          <p className="mt-2 text-xs text-muted-foreground">Confirmed or booked, by move date</p>
         </Card>
       </div>
 
@@ -232,10 +278,10 @@ export default async function OverviewPage() {
                 category="value"
                 index="name"
                 colors={statusBreakdown.map((d) => d.color)}
-                className="h-40"
+                className="h-36"
                 showAnimation
               />
-              <ul className="mt-4 space-y-1.5">
+              <ul className="mt-3 space-y-1">
                 {statusBreakdown.map((d) => (
                   <li key={d.name} className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>{d.name}</span>
@@ -249,22 +295,36 @@ export default async function OverviewPage() {
 
         <Card className="shadow-card">
           <div className="flex items-center justify-between border-b border-border p-5">
-            <h2 className="flex items-center gap-1.5 text-sm font-semibold"><Truck className="h-4 w-4 text-primary" /> Upcoming jobs</h2>
+            <h2 className="flex items-center gap-1.5 text-sm font-semibold"><Truck className="h-4 w-4 text-primary" /> Jobs in the next 7 days</h2>
+            <span className="text-lg font-semibold">{upcomingJobs.length}</span>
           </div>
           {upcomingJobs.length === 0 ? (
             <p className="p-5 text-sm text-muted-foreground">Nothing booked in the next 7 days.</p>
           ) : (
-            <ul className="divide-y divide-border">
-              {upcomingJobs.map((q) => (
-                <li key={q.id} className="flex items-center justify-between gap-3 p-4">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{q.customer_name ?? "Customer"} — {q.from_postcode} → {q.to_postcode}</p>
-                    <p className="text-xs text-muted-foreground">{new Date(q.move_date as string).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}</p>
-                  </div>
-                  <StatusBadge status={q.status} />
-                </li>
-              ))}
-            </ul>
+            <>
+              <div className="px-5 pt-4">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Booked</span>
+                  <span>{upcomingBookedPct}%</span>
+                </div>
+                <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                  <div className="h-full rounded-full bg-success transition-all" style={{ width: `${upcomingBookedPct}%` }} />
+                </div>
+              </div>
+              <ul className="mt-2 divide-y divide-border">
+                {upcomingJobs.map((q) => (
+                  <li key={q.id}>
+                    <Link href={`/dashboard/leads/${q.id}`} className="flex items-center justify-between gap-3 p-4 hover:bg-accent/50">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{q.customer_name ?? "Customer"} — {q.from_postcode} → {q.to_postcode}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(q.move_date as string).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}</p>
+                      </div>
+                      <StatusBadge status={q.status} />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
         </Card>
 
@@ -277,8 +337,10 @@ export default async function OverviewPage() {
           ) : (
             <ul className="divide-y divide-border">
               {activity.map((e, i) => (
-                <li key={i} className="flex items-center gap-3 p-4">
-                  {e.node}
+                <li key={i}>
+                  <Link href={e.href} className="flex items-center gap-3 p-4 hover:bg-accent/50">
+                    {e.node}
+                  </Link>
                 </li>
               ))}
             </ul>

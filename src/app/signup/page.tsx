@@ -43,14 +43,14 @@ export default function SignupPage() {
       return;
     }
 
-    // Every account goes straight to Stripe Checkout to start the 3-day trial.
+    // Every account goes straight to Stripe Checkout — billing starts immediately.
     const checkoutRes = await fetch("/api/stripe/checkout", { method: "POST" });
     const checkoutData = await checkoutRes.json();
     if (checkoutRes.ok && checkoutData.url) {
       window.location.href = checkoutData.url;
       return;
     }
-    setError(checkoutData.error ?? "Could not start your trial. Please try again.");
+    setError(checkoutData.error ?? "Could not start your subscription. Please try again.");
     setLoading(false);
   }
 
@@ -60,8 +60,8 @@ export default function SignupPage() {
     <main className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-6 py-16">
       <Card className="shadow-popover">
         <CardHeader>
-          <CardTitle className="text-2xl">Start your 3-day trial</CardTitle>
-          <p className="text-sm text-muted-foreground">Full access to QuoteHaul Pro, free for 3 days. A card is required to start — you won&apos;t be charged until the trial ends, and you can cancel any time.</p>
+          <CardTitle className="text-2xl">Start your subscription</CardTitle>
+          <p className="text-sm text-muted-foreground">Full access to QuoteHaul Pro — £97/month, cancel any time.</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -85,7 +85,7 @@ export default function SignupPage() {
             {error && <p className="text-sm text-danger">{error}</p>}
 
             <Button disabled={loading} type="submit" className="w-full">
-              {loading ? "Setting up your trial..." : "Continue to payment details"}
+              {loading ? "Setting up your account..." : "Continue to payment details"}
             </Button>
           </form>
         </CardContent>

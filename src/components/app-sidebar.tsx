@@ -2,27 +2,43 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Truck, LayoutDashboard, KanbanSquare, CalendarClock, Settings, ExternalLink } from "lucide-react";
+import { Truck, LayoutDashboard, KanbanSquare, CalendarClock, Settings, ExternalLink, Users, Receipt, UserCog } from "lucide-react";
 import { NavMain, type NavMainItem } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarRail } from "@/components/ui/sidebar";
+import { canAccess, type Membership } from "@/lib/permissions";
 
-const NAV_ITEMS: NavMainItem[] = [
-  { title: "Overview", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Leads", url: "/dashboard/leads", icon: KanbanSquare },
-  { title: "Capacity", url: "/dashboard/capacity", icon: CalendarClock },
-  { title: "Settings", url: "/dashboard/settings", icon: Settings },
+const NAV_ITEMS: (NavMainItem & { permKey: Parameters<typeof canAccess>[1] })[] = [
+  { title: "Overview", url: "/dashboard", icon: LayoutDashboard, permKey: "overview" },
+  { title: "Leads", url: "/dashboard/leads", icon: KanbanSquare, permKey: "leads" },
+  { title: "Customers", url: "/dashboard/customers", icon: Users, permKey: "customers" },
+  { title: "Invoices", url: "/dashboard/invoices", icon: Receipt, permKey: "invoices" },
+  { title: "Capacity", url: "/dashboard/capacity", icon: CalendarClock, permKey: "capacity" },
+  { title: "Team", url: "/dashboard/team", icon: UserCog, permKey: "team" },
+  { title: "Settings", url: "/dashboard/settings", icon: Settings, permKey: "settings" },
 ];
 
 export function AppSidebar({
   companyName,
   userEmail,
   tenantSlug,
+  newLeadsCount = 0,
+  avatarUrl,
+  membership,
   ...props
-}: React.ComponentProps<typeof Sidebar> & { companyName: string; userEmail: string; tenantSlug?: string }) {
+}: React.ComponentProps<typeof Sidebar> & {
+  companyName: string;
+  userEmail: string;
+  tenantSlug?: string;
+  newLeadsCount?: number;
+  avatarUrl?: string | null;
+  membership: Membership | null;
+}) {
+  const visible = NAV_ITEMS.filter((item) => canAccess(membership, item.permKey));
+  const withBadges = visible.map((item) => (item.title === "Leads" ? { ...item, badge: newLeadsCount } : item));
   const items = tenantSlug
-    ? [...NAV_ITEMS, { title: "Public funnel", url: `/${tenantSlug}`, icon: ExternalLink, external: true }]
-    : NAV_ITEMS;
+    ? [...withBadges, { title: "Public funnel", url: `/${tenantSlug}`, icon: ExternalLink, external: true }]
+    : withBadges;
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -47,7 +63,7 @@ export function AppSidebar({
         <NavMain items={items} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser companyName={companyName} userEmail={userEmail} tenantSlug={tenantSlug} />
+        <NavUser companyName={companyName} userEmail={userEmail} tenantSlug={tenantSlug} avatarUrl={avatarUrl} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

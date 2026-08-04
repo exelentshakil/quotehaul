@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { ArrowRight, Play } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { HeroDemo } from "@/components/marketing/hero-demo";
 
-// Swap DEMO_VIDEO_URL in once the real recording exists — everything else
-// (thumbnail, play button, layout) is already wired for it.
-const DEMO_VIDEO_URL: string | null = null;
+// A literal edited video file isn't something this can produce — HeroDemo
+// autoplays through the real product components instead (see its own
+// comment). Swap in a <video> here directly if a real recording ever exists.
 
 export function Hero() {
   return (
@@ -25,32 +26,15 @@ export function Hero() {
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Button asChild size="lg">
-            <Link href="/signup">Start your 3-day free trial <ArrowRight className="h-4 w-4" /></Link>
+            <Link href="/signup">Start your subscription <ArrowRight className="h-4 w-4" /></Link>
           </Button>
           <Button asChild variant="outline" size="lg">
             <a href="#pricing">See pricing</a>
           </Button>
         </div>
-        <p className="mt-4 text-xs text-muted-foreground">Card required to start — you won&apos;t be charged for 3 days, cancel any time.</p>
+        <p className="mt-4 text-xs text-muted-foreground">£97/month, cancel any time.</p>
 
-        <div className="relative mx-auto mt-14 max-w-3xl">
-          {DEMO_VIDEO_URL ? (
-            <video src={DEMO_VIDEO_URL} controls className="w-full rounded-2xl border border-border shadow-popover" />
-          ) : (
-            <button
-              type="button"
-              className="group relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary/15 via-accent to-primary/5 shadow-popover"
-              aria-label="Watch the demo (coming soon)"
-            >
-              <span className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-popover transition-transform group-hover:scale-105">
-                <Play className="h-6 w-6 translate-x-0.5" fill="currentColor" />
-              </span>
-              <span className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-background/90 px-3 py-1 text-xs font-medium text-muted-foreground">
-                60-second demo — coming soon
-              </span>
-            </button>
-          )}
-        </div>
+        <HeroDemo />
       </div>
     </section>
   );

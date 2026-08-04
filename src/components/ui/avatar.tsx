@@ -7,7 +7,12 @@ function colorFor(name: string) {
   return COLORS[idx];
 }
 
-export function Avatar({ name, className }: { name: string; className?: string }) {
+export function Avatar({ name, src, className }: { name: string; src?: string | null; className?: string }) {
+  if (src) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={src} alt={name} className={cn("inline-flex h-8 w-8 shrink-0 rounded-full object-cover", className)} />;
+  }
+
   const initials = name
     .trim()
     .split(/\s+/)

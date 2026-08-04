@@ -19,11 +19,8 @@ export async function POST() {
   const stripe = getStripe();
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
-  // Every tenant gets exactly one 3-day trial, the first time they ever check
-  // out. A tenant re-subscribing after lapsing back to Free (they already have
-  // a stripe_subscription_id on record) pays immediately, no second trial.
-  const isFirstCheckout = !tenant.stripe_subscription_id;
-
+  // No trial — billing starts immediately on checkout. Serious buyers pay
+  // from day one; ad spend can't wait a week hoping for a conversion.
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     line_items: [{ price: PAID_PLAN_PRICE_ID, quantity: 1 }],
@@ -32,10 +29,9 @@ export async function POST() {
     client_reference_id: tenant.id,
     subscription_data: {
       metadata: { tenant_id: tenant.id },
-      ...(isFirstCheckout ? { trial_period_days: 3 } : {}),
     },
     metadata: { tenant_id: tenant.id },
-    success_url: `${siteUrl}/dashboard?trial_started=1`,
+    success_url: `${siteUrl}/dashboard?welcome=1`,
     cancel_url: `${siteUrl}/signup?checkout_cancelled=1`,
   });
 

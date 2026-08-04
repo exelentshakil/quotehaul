@@ -212,7 +212,7 @@ export function PricingSection() {
       <div className="mx-auto max-w-4xl px-6">
         <div className="mb-12 text-center">
           <h2 className="font-display text-3xl font-bold">Simple pricing</h2>
-          <p className="mt-2 text-muted-foreground">Try Pro free for 3 days. Downgrade to a limited free plan any time you like.</p>
+          <p className="mt-2 text-muted-foreground">One plan, everything included. Downgrade to a limited free plan any time you like.</p>
         </div>
         <div className="grid gap-6 sm:grid-cols-2">
           <Card className="shadow-card">
@@ -234,7 +234,6 @@ export function PricingSection() {
                 <CardTitle>Pro</CardTitle>
                 <Badge>Most popular</Badge>
               </div>
-              <p className="text-sm text-muted-foreground">3-day free trial, then</p>
               <p className="text-3xl font-bold">£97<span className="text-base font-normal text-muted-foreground">/mo</span></p>
             </CardHeader>
             <CardContent>
@@ -244,7 +243,7 @@ export function PricingSection() {
                 ))}
               </ul>
               <Button asChild className="mt-6 w-full">
-                <Link href="/signup">Start 3-day trial</Link>
+                <Link href="/signup">Get started</Link>
               </Button>
             </CardContent>
           </Card>
@@ -256,7 +255,7 @@ export function PricingSection() {
 
 const FAQS = [
   { q: "Is the instant estimate a fixed price?", a: "No — it's a guide. A real person on your team reviews and confirms the exact price before anything's booked." },
-  { q: "Can I cancel any time?", a: "Yes, from Settings → Billing, any time — including during the trial before you're ever charged." },
+  { q: "Can I cancel any time?", a: "Yes, from Settings → Billing, any time — no lock-in contract." },
   { q: "Is my leads data shared with anyone else?", a: "No. Every account is fully isolated — your leads are yours, never shared with other companies." },
   { q: "How long does setup take?", a: "Most companies are live with their own branding and rates within an afternoon." },
 ];
@@ -282,9 +281,9 @@ export function FinalCta() {
     <div className="mx-auto max-w-3xl px-6 pb-20">
       <div className="rounded-2xl bg-primary px-6 py-14 text-center text-primary-foreground">
         <h2 className="font-display text-3xl font-bold">Ready to get moving?</h2>
-        <p className="mt-2 text-primary-foreground/80">Start your free 3-day trial — no charge until it ends.</p>
+        <p className="mt-2 text-primary-foreground/80">£97/month, cancel any time.</p>
         <Button asChild size="lg" variant="secondary" className="mt-6">
-          <Link href="/signup">Start free trial</Link>
+          <Link href="/signup">Get started</Link>
         </Button>
       </div>
     </div>

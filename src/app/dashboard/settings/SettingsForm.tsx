@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { RateConfig, Tenant } from "@/types/database";
+import { ImageUpload } from "@/components/image-upload";
 
 export default function SettingsForm({ tenant, rateConfig }: { tenant: Tenant; rateConfig: RateConfig }) {
   const router = useRouter();
   const [companyName, setCompanyName] = useState(tenant.company_name);
   const [phone, setPhone] = useState(tenant.branding?.phone ?? "");
   const [primaryColor, setPrimaryColor] = useState(tenant.branding?.primary_color ?? "#1d4ed8");
+  const [logoUrl, setLogoUrl] = useState(tenant.branding?.logo_url ?? "");
   const [ratePerMile, setRatePerMile] = useState(rateConfig.rate_per_mile);
   const [minimumJobPrice, setMinimumJobPrice] = useState(rateConfig.minimum_job_price);
   const [serviceRadius, setServiceRadius] = useState(rateConfig.service_radius_miles);
@@ -22,7 +24,7 @@ export default function SettingsForm({ tenant, rateConfig }: { tenant: Tenant; r
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        companyName, phone, primaryColor, ratePerMile, minimumJobPrice, serviceRadius,
+        companyName, phone, primaryColor, logoUrl, ratePerMile, minimumJobPrice, serviceRadius,
       }),
     });
     setSaving(false);
@@ -34,6 +36,10 @@ export default function SettingsForm({ tenant, rateConfig }: { tenant: Tenant; r
     <div className="space-y-6">
       <div className="rounded-lg border border-slate-200 bg-white p-6">
         <h3 className="mb-4 font-semibold">Branding</h3>
+        <div className="mb-4">
+          <label className="mb-1 block text-sm font-medium">Logo</label>
+          <ImageUpload value={logoUrl} onChange={setLogoUrl} kind="logo" shape="square" />
+        </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className="mb-1 block text-sm font-medium">Company name</label>

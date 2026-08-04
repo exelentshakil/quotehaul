@@ -148,3 +148,13 @@ export type LeadScore = {
   follow_up_draft: string | null;
   generated_at: string;
 };
+
+export type Invoice = {
+  id: string;
+  tenant_id: string;
+  quote_id: string;
+  amount: number;
+  label: string;
+  instructions: string | null;
+  created_at: string;
+};
