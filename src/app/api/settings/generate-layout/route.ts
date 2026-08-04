@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generatePageLayout } from "@/lib/ai";
+import { searchPhoto, injectHeroPhoto } from "@/lib/unsplash";
 import type { Tenant } from "@/types/database";
 
 // Creates a new saved version from an AI prompt — never overwrites or
@@ -18,11 +19,15 @@ export async function POST(req: Request) {
   const { data: tenant } = await supabase.from("tenants").select("*").eq("id", membership.tenant_id).single<Tenant>();
   if (!tenant) return NextResponse.json({ error: "Company not found" }, { status: 404 });
 
-  const content = await generatePageLayout(tenant, body.prompt);
+  const [content, photo] = await Promise.all([
+    generatePageLayout(tenant, body.prompt),
+    searchPhoto(`${body.prompt} moving removal company`),
+  ]);
+  const contentWithPhoto = injectHeroPhoto(content, photo);
 
   const { data: version, error } = await supabase
     .from("page_layouts")
-    .insert({ tenant_id: tenant.id, name: body.name?.trim() || `AI draft — ${new Date().toLocaleDateString()}`, data: { content, root: {}, zones: {} } })
+    .insert({ tenant_id: tenant.id, name: body.name?.trim() || `AI draft — ${new Date().toLocaleDateString()}`, data: { content: contentWithPhoto, root: {}, zones: {} } })
     .select()
     .single();
   if (error || !version) return NextResponse.json({ error: error?.message ?? "Could not save the generated page" }, { status: 400 });

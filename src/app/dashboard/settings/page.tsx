@@ -6,6 +6,7 @@ import SettingsForm from "./SettingsForm";
 import BillingCard from "./BillingCard";
 import PaymentsCard from "./PaymentsCard";
 import ContentGenCard from "./ContentGenCard";
+import DomainsCard from "./DomainsCard";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -31,6 +32,13 @@ export default async function SettingsPage() {
         planName={plan?.name ?? "Free"}
         subscriptionStatus={tenant.subscription_status}
         trialEndsAt={tenant.trial_ends_at}
+      />
+      <DomainsCard
+        slug={tenant.slug}
+        siteUrl={process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}
+        customDomain={tenant.custom_domain}
+        customDomainStatus={tenant.custom_domain_status}
+        isPro={plan?.slug === "paid"}
       />
       {plan?.slug === "paid" && <PaymentsCard status={stripeAccount?.status ?? null} />}
       {plan?.slug === "paid" && <ContentGenCard existingAdCopy={adCopyPage?.content ?? null} />}

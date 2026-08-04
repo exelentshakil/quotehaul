@@ -32,18 +32,32 @@ export const puckConfig: Config = {
         heading: { type: "text" },
         subheading: { type: "textarea" },
         ctaLabel: { type: "text" },
+        backgroundImageUrl: { type: "text" },
+        backgroundImageCredit: { type: "text" },
       },
       defaultProps: HERO_DEFAULTS,
       // Falls back explicitly (not just via Puck's defaultProps) since a
       // partially-edited component in stored data can omit untouched
       // fields entirely — this must never render as literal "undefined".
-      render: ({ heading, subheading, ctaLabel, puck }) => (
-        <div className="py-12 text-center">
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{heading || HERO_DEFAULTS.heading}</h1>
-          <p className="mx-auto mt-4 max-w-xl text-muted-foreground">{subheading || HERO_DEFAULTS.subheading}</p>
-          <Button asChild size="lg" className="mt-8">
-            <Link href={`/${(puck?.metadata as PuckProps)?.tenantSlug ?? ""}/quote`}>{ctaLabel || HERO_DEFAULTS.ctaLabel}</Link>
-          </Button>
+      render: ({ heading, subheading, ctaLabel, backgroundImageUrl, backgroundImageCredit, puck }) => (
+        <div className="relative overflow-hidden rounded-2xl py-16 text-center">
+          {backgroundImageUrl && (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={backgroundImageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/10" />
+            </>
+          )}
+          <div className="relative">
+            <h1 className={`text-3xl font-bold tracking-tight sm:text-4xl ${backgroundImageUrl ? "text-white" : ""}`}>{heading || HERO_DEFAULTS.heading}</h1>
+            <p className={`mx-auto mt-4 max-w-xl ${backgroundImageUrl ? "text-white/90" : "text-muted-foreground"}`}>{subheading || HERO_DEFAULTS.subheading}</p>
+            <Button asChild size="lg" className="mt-8">
+              <Link href={`/${(puck?.metadata as PuckProps)?.tenantSlug ?? ""}/quote`}>{ctaLabel || HERO_DEFAULTS.ctaLabel}</Link>
+            </Button>
+          </div>
+          {backgroundImageUrl && backgroundImageCredit && (
+            <p className="relative mt-3 text-[10px] text-white/60">Photo by {backgroundImageCredit} on Unsplash</p>
+          )}
         </div>
       ),
     },

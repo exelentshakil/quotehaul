@@ -20,23 +20,29 @@ export function OrderMessageThread({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function send() {
-    if (!body.trim()) return;
+  async function send(e?: React.FormEvent) {
+    e?.preventDefault();
+    if (!body.trim() || loading) return;
     setLoading(true);
     setError(null);
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ body }),
-    });
-    setLoading(false);
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Could not send that message");
-      return;
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? "Could not send that message");
+        return;
+      }
+      setBody("");
+      router.refresh();
+    } catch {
+      setError("Network error — please try again");
+    } finally {
+      setLoading(false);
     }
-    setBody("");
-    router.refresh();
   }
 
   return (
@@ -54,21 +60,25 @@ export function OrderMessageThread({
           />
         ))}
       </div>
-      <div className="border-t border-border p-4">
+      <form onSubmit={send} className="border-t border-border p-4">
         <textarea
           value={body}
           onChange={(e) => setBody(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) send(e);
+          }}
           placeholder={placeholder}
           rows={3}
           className="w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
         {error && <p className="mt-2 text-sm text-danger">{error}</p>}
-        <div className="mt-2 flex justify-end">
-          <Button size="sm" disabled={loading || !body.trim()} onClick={send}>
+        <div className="mt-2 flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">Enter to send, Shift+Enter for a new line</span>
+          <Button type="submit" size="sm" disabled={loading || !body.trim()}>
             {loading ? "Sending..." : "Send message"}
           </Button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }

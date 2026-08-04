@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Check, Sparkles, MessageSquare, KanbanSquare } from "lucide-react";
+import { Check, X, Sparkles, MessageSquare, KanbanSquare, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -49,9 +49,72 @@ const STEPS = [
   { icon: Sparkles, title: "AI keeps it moving", body: "Stalled leads get an AI-drafted follow-up your team sends in one click." },
 ];
 
+export function RoiSection() {
+  return (
+    <div id="roi" className="border-y border-border bg-muted/30 py-20">
+      <div className="mx-auto max-w-4xl px-6 text-center">
+        <p className="flex items-center justify-center gap-1.5 text-sm font-semibold text-primary"><TrendingUp className="h-4 w-4" /> The math</p>
+        <h2 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">One extra booked job pays for QuoteHaul for months</h2>
+        <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
+          At £97/mo, QuoteHaul costs less than a single average local move. Win back even one job a month that
+          would otherwise have gone cold in an inbox — from faster response time, a lead that never got followed up,
+          or a customer who booked with whoever answered first — and it's already paid for itself several times over.
+        </p>
+        <div className="mx-auto mt-10 grid max-w-2xl gap-6 sm:grid-cols-3">
+          {[
+            { stat: "£97/mo", label: "Costs less than one average local move" },
+            { stat: "1 job", label: "Is usually all it takes to cover months of subscription" },
+            { stat: "0 missed", label: "Leads sitting unread once every enquiry hits your board" },
+          ].map((s) => (
+            <div key={s.label} className="rounded-xl border border-border bg-card p-5 shadow-card">
+              <p className="text-2xl font-bold text-primary">{s.stat}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const COMPARISON = [
+  { label: "Response time to a new enquiry", without: "Whenever someone checks email", with: "Instant — customer gets a price in 60 seconds" },
+  { label: "Lead tracking", without: "Inbox, spreadsheet, or memory", with: "Kanban board, nothing falls through" },
+  { label: "Following up on quiet leads", without: "Only if someone remembers to", with: "AI drafts it, your team just sends" },
+  { label: "Looking professional online", without: "Generic contact form", with: "Your own branded funnel, your own domain" },
+];
+
+export function ComparisonSection() {
+  return (
+    <div className="mx-auto max-w-3xl px-6 py-16">
+      <h2 className="text-center text-2xl font-bold tracking-tight sm:text-3xl">Without QuoteHaul vs. with QuoteHaul</h2>
+      <div className="mt-8 overflow-x-auto rounded-xl border border-border">
+        <table className="w-full text-left text-sm">
+          <thead className="bg-muted/50">
+            <tr>
+              <th className="px-4 py-3 font-medium">&nbsp;</th>
+              <th className="px-4 py-3 font-medium text-muted-foreground">Without</th>
+              <th className="px-4 py-3 font-medium text-primary">With QuoteHaul</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {COMPARISON.map((row) => (
+              <tr key={row.label}>
+                <td className="px-4 py-3 font-medium">{row.label}</td>
+                <td className="px-4 py-3 text-muted-foreground"><span className="flex items-center gap-1.5"><X className="h-3.5 w-3.5 text-danger" /> {row.without}</span></td>
+                <td className="px-4 py-3"><span className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-success" /> {row.with}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export function HowItWorks() {
   return (
-    <div className="mx-auto max-w-4xl px-6 py-16">
+    <div id="how-it-works" className="mx-auto max-w-4xl px-6 py-16">
       <h2 className="text-center text-2xl font-bold tracking-tight sm:text-3xl">How it works</h2>
       <div className="mt-10 grid gap-8 sm:grid-cols-3">
         {STEPS.map((s, i) => (
@@ -124,7 +187,7 @@ const FAQS = [
 
 export function FaqSection() {
   return (
-    <div className="mx-auto max-w-2xl px-6 py-16">
+    <div id="faq" className="mx-auto max-w-2xl px-6 py-16">
       <h2 className="text-center text-2xl font-bold tracking-tight sm:text-3xl">Frequently asked questions</h2>
       <div className="mt-8 divide-y divide-border">
         {FAQS.map((f) => (

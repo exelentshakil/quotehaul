@@ -3,6 +3,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import type { PageLayout, Plan, Tenant } from "@/types/database";
 import { PuckEditor } from "@/components/puck-editor";
+import { RICH_DEFAULT_CONTENT } from "@/lib/puck-config";
+import { searchPhoto, injectHeroPhoto } from "@/lib/unsplash";
 
 export default async function PageBuilderPage() {
   const supabase = await createClient();
@@ -26,17 +28,37 @@ export default async function PageBuilderPage() {
     );
   }
 
-  const [{ data: versions }, { data: faqItems }] = await Promise.all([
+  const [{ data: versionsResult }, { data: faqItems }] = await Promise.all([
     supabase.from("page_layouts").select("*").eq("tenant_id", tenant.id).order("created_at", { ascending: false }).returns<PageLayout[]>(),
     supabase.from("faq_items").select("question, answer").eq("tenant_id", tenant.id).order("sort_order"),
   ]);
+
+  let versions = versionsResult ?? [];
+  let activeVersionId = tenant.active_page_layout_id;
+
+  // First-ever visit: give the tenant a real photo by default instead of the
+  // plain gradient placeholder, so the page looks finished, not started.
+  if (versions.length === 0) {
+    const photo = await searchPhoto("moving company house removal truck");
+    const content = injectHeroPhoto(RICH_DEFAULT_CONTENT, photo);
+    const { data: version } = await supabase
+      .from("page_layouts")
+      .insert({ tenant_id: tenant.id, name: "Original", data: { content, root: {}, zones: {} } })
+      .select()
+      .single<PageLayout>();
+    if (version) {
+      versions = [version];
+      activeVersionId = version.id;
+      await supabase.from("tenants").update({ active_page_layout_id: version.id }).eq("id", tenant.id);
+    }
+  }
 
   return (
     <PuckEditor
       tenantSlug={tenant.slug}
       faqItems={faqItems ?? []}
-      versions={versions ?? []}
-      activeVersionId={tenant.active_page_layout_id}
+      versions={versions}
+      activeVersionId={activeVersionId}
     />
   );
 }

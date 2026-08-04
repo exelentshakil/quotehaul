@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { DndContext, DragOverlay, useDraggable, useDroppable, type DragEndEvent } from "@dnd-kit/core";
+import { DndContext, DragOverlay, PointerSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { KanbanCard } from "@/components/ui/kanban-card";
 import { STATUS_LABELS } from "@/components/ui/status-badge";
 import type { Quote, QuoteStatus } from "@/types/database";
@@ -63,8 +63,13 @@ export function KanbanBoard({ quotes }: { quotes: Quote[] }) {
 
   const activeQuote = items.find((q) => q.id === activeId);
 
+  // Without an activation distance, dnd-kit treats any pointerdown+micro-move
+  // as a drag start and swallows the click — breaking the card's Link
+  // navigation until several attempts happen to land with zero movement.
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+
   return (
-    <DndContext onDragStart={(e) => setActiveId(e.active.id as string)} onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} onDragStart={(e) => setActiveId(e.active.id as string)} onDragEnd={handleDragEnd}>
       <div className="flex gap-4 overflow-x-auto pb-4">
         {COLUMNS.map((status) => (
           <Column key={status} status={status} quotes={items.filter((q) => q.status === status)} />
