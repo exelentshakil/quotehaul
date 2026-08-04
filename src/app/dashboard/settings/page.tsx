@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getSessionUser, getTenantMembership } from "@/lib/dal";
 import type { Plan, RateConfig, StripeAccount, Tenant } from "@/types/database";
 import SettingsForm from "./SettingsForm";
 import BillingCard from "./BillingCard";
@@ -9,18 +10,20 @@ import ContentGenCard from "./ContentGenCard";
 import DomainsCard from "./DomainsCard";
 
 export default async function SettingsPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const { data: membership } = await supabase.from("tenant_users").select("tenant_id").eq("user_id", user.id).maybeSingle();
+  const membership = await getTenantMembership(user.id);
   if (!membership) return <p>No company found for your account.</p>;
 
-  const { data: tenant } = await supabase.from("tenants").select("*").eq("id", membership.tenant_id).single<Tenant>();
-  const { data: rateConfig } = await supabase.from("rate_configs").select("*").eq("tenant_id", membership.tenant_id).single<RateConfig>();
+  const supabase = await createClient();
+  const [{ data: tenant }, { data: rateConfig }, { data: stripeAccount }, { data: adCopyPage }] = await Promise.all([
+    supabase.from("tenants").select("*").eq("id", membership.tenant_id).single<Tenant>(),
+    supabase.from("rate_configs").select("*").eq("tenant_id", membership.tenant_id).single<RateConfig>(),
+    supabase.from("stripe_accounts").select("*").eq("tenant_id", membership.tenant_id).maybeSingle<StripeAccount>(),
+    supabase.from("content_pages").select("content").eq("tenant_id", membership.tenant_id).eq("type", "ad_copy").maybeSingle(),
+  ]);
   const { data: plan } = await supabase.from("plans").select("*").eq("id", tenant?.plan_id).single<Plan>();
-  const { data: stripeAccount } = await supabase.from("stripe_accounts").select("*").eq("tenant_id", membership.tenant_id).maybeSingle<StripeAccount>();
-  const { data: adCopyPage } = await supabase.from("content_pages").select("content").eq("tenant_id", membership.tenant_id).eq("type", "ad_copy").maybeSingle();
 
   if (!tenant || !rateConfig) return <p>Setup incomplete.</p>;
 

@@ -1,12 +1,19 @@
 import type { Config } from "@measured/puck";
 import Link from "next/link";
-import { Check, Sparkles } from "lucide-react";
+import {
+  Check, Sparkles, Quote as QuoteIcon, Home, Truck, Building2, PackageCheck,
+  Warehouse, Users, ShieldCheck, Clock, MapPin, Boxes,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // A deliberately small set of blocks — the shared component library
 // registered as draggable pieces, not an open-ended page builder. Assembly
 // (AI or manual) only ever composes these, never invents new component types.
 export type PuckProps = { tenantSlug: string; faqItems: { question: string; answer: string }[] };
+
+const ICONS = { Home, Truck, Building2, PackageCheck, Warehouse, Users, ShieldCheck, Clock, MapPin, Boxes } as const;
+type IconName = keyof typeof ICONS;
+const ICON_OPTIONS = Object.keys(ICONS).map((k) => ({ label: k, value: k }));
 
 const HERO_DEFAULTS = { heading: "Moving house? Get an instant estimate.", subheading: "Free and no obligation — a real person confirms every quote.", ctaLabel: "Get my estimate" };
 const FEATURE_DEFAULTS = { title: "Instant, accurate estimates", body: "A price range in about 60 seconds." };
@@ -24,6 +31,15 @@ const STEPS_DEFAULT = [
 ];
 const VALUE_PROPS_DEFAULT = "Local & long-distance moves, Free & no obligation, Your details stay private";
 const CTA_DEFAULTS = { heading: "Ready to get moving?", buttonLabel: "Get my estimate" };
+const SERVICE_GRID_DEFAULT: { title: string; body: string; icon: IconName }[] = [
+  { title: "Home Removals", body: "A complete residential move — furniture, packing, and secure transport.", icon: "Home" },
+  { title: "Man & Van", body: "For smaller jobs — quick, careful, and fairly priced.", icon: "Truck" },
+  { title: "Office Removals", body: "Minimal downtime, careful handling of equipment.", icon: "Building2" },
+];
+const IMAGE_TEXT_DEFAULTS = { heading: "About us", body: "Tell customers who you are, how long you've been moving people, and what makes you different.", linkLabel: "Get my estimate" };
+const QUOTE_DEFAULT = "Every move is different — that's why we adapt our service to your specific needs.";
+const BENEFITS_DEFAULTS = { heading: "Why choose us", body: "A short paragraph on what makes your company trustworthy — experience, ratings, guarantees." };
+const BENEFITS_ITEMS_DEFAULT = "Fully insured & professional crews, Transparent, no-surprise pricing, Fast, no-obligation quotes, Real reviews from real customers";
 
 export const puckConfig: Config = {
   components: {
@@ -40,12 +56,12 @@ export const puckConfig: Config = {
       // partially-edited component in stored data can omit untouched
       // fields entirely — this must never render as literal "undefined".
       render: ({ heading, subheading, ctaLabel, backgroundImageUrl, backgroundImageCredit, puck }) => (
-        <div className="relative overflow-hidden rounded-2xl py-16 text-center">
+        <div className="relative overflow-hidden rounded-2xl py-20 text-center">
           {backgroundImageUrl && (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={backgroundImageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/10" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/45 to-black/10" />
             </>
           )}
           <div className="relative">
@@ -61,15 +77,65 @@ export const puckConfig: Config = {
         </div>
       ),
     },
-    FeatureCard: {
-      fields: { title: { type: "text" }, body: { type: "textarea" } },
-      defaultProps: FEATURE_DEFAULTS,
-      render: ({ title, body }) => (
-        <div className="rounded-xl border border-border bg-card p-5 shadow-card">
-          <p className="font-semibold">{title || FEATURE_DEFAULTS.title}</p>
-          <p className="mt-1 text-sm text-muted-foreground">{body || FEATURE_DEFAULTS.body}</p>
+    ImageTextSplit: {
+      fields: {
+        heading: { type: "text" },
+        body: { type: "textarea" },
+        linkLabel: { type: "text" },
+        imageUrl: { type: "text" },
+        imageCredit: { type: "text" },
+        reverse: { type: "radio", options: [{ label: "Image left", value: "false" }, { label: "Image right", value: "true" }] },
+      },
+      defaultProps: { ...IMAGE_TEXT_DEFAULTS, reverse: "false" },
+      render: ({ heading, body, linkLabel, imageUrl, imageCredit, reverse, puck }) => (
+        <div className={`grid items-center gap-8 py-10 sm:grid-cols-2 ${reverse === "true" ? "[&>*:first-child]:sm:order-2" : ""}`}>
+          <div className="overflow-hidden rounded-2xl bg-muted shadow-card">
+            {imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={imageUrl} alt="" className="aspect-[4/3] w-full object-cover" />
+            ) : (
+              <div className="aspect-[4/3] w-full bg-gradient-to-br from-primary/15 to-accent" />
+            )}
+            {imageUrl && imageCredit && <p className="bg-card px-3 py-1 text-[10px] text-muted-foreground">Photo by {imageCredit} on Unsplash</p>}
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">{heading || IMAGE_TEXT_DEFAULTS.heading}</h2>
+            <p className="mt-3 text-muted-foreground">{body || IMAGE_TEXT_DEFAULTS.body}</p>
+            <Button asChild className="mt-5">
+              <Link href={`/${(puck?.metadata as PuckProps)?.tenantSlug ?? ""}/quote`}>{linkLabel || IMAGE_TEXT_DEFAULTS.linkLabel}</Link>
+            </Button>
+          </div>
         </div>
       ),
+    },
+    ServiceGrid: {
+      fields: {
+        items: {
+          type: "array",
+          arrayFields: { title: { type: "text" }, body: { type: "textarea" }, icon: { type: "select", options: ICON_OPTIONS } },
+          defaultItemProps: SERVICE_GRID_DEFAULT[0],
+        },
+      },
+      defaultProps: { items: SERVICE_GRID_DEFAULT },
+      render: ({ items }) => {
+        const list: typeof SERVICE_GRID_DEFAULT = items?.length ? items : SERVICE_GRID_DEFAULT;
+        return (
+          <div className="grid gap-5 py-6 sm:grid-cols-3">
+            {list.map((s, i) => {
+              const Icon = ICONS[s.icon] ?? Truck;
+              return (
+                <div key={i} className="rounded-2xl border border-border bg-card p-6 shadow-card transition-shadow hover:shadow-popover">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10">
+                    <Icon className="h-5 w-5 text-primary" />
+                  </div>
+                  <p className="mt-4 font-semibold">{s.title}</p>
+                  <p className="mt-1.5 text-sm text-muted-foreground">{s.body}</p>
+                </div>
+              );
+            })}
+          </div>
+        );
+      },
     },
     FeatureGrid: {
       fields: {
@@ -93,6 +159,43 @@ export const puckConfig: Config = {
           </div>
         );
       },
+    },
+    BenefitsSplit: {
+      fields: {
+        heading: { type: "text" },
+        body: { type: "textarea" },
+        items: { type: "textarea" },
+      },
+      defaultProps: { ...BENEFITS_DEFAULTS, items: BENEFITS_ITEMS_DEFAULT },
+      render: ({ heading, body, items }) => {
+        const list = (items || BENEFITS_ITEMS_DEFAULT).split(",").map((i: string) => i.trim());
+        return (
+          <div className="grid gap-8 rounded-2xl bg-foreground px-6 py-12 text-background sm:grid-cols-2 sm:px-10">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight">{heading || BENEFITS_DEFAULTS.heading}</h2>
+              <p className="mt-3 text-background/70">{body || BENEFITS_DEFAULTS.body}</p>
+            </div>
+            <ul className="space-y-3">
+              {list.map((item: string) => (
+                <li key={item} className="flex items-center gap-3 text-sm">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary"><Check className="h-3.5 w-3.5 text-primary-foreground" /></span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      },
+    },
+    QuoteBanner: {
+      fields: { text: { type: "textarea" } },
+      defaultProps: { text: QUOTE_DEFAULT },
+      render: ({ text }) => (
+        <div className="rounded-2xl bg-accent px-6 py-12 text-center">
+          <QuoteIcon className="mx-auto h-6 w-6 text-primary/40" />
+          <p className="mx-auto mt-3 max-w-2xl text-xl font-medium italic text-foreground">{text || QUOTE_DEFAULT}</p>
+        </div>
+      ),
     },
     Steps: {
       fields: {
@@ -168,14 +271,25 @@ export const puckConfig: Config = {
       },
     },
     CTASection: {
-      fields: { heading: { type: "text" }, buttonLabel: { type: "text" } },
+      fields: { heading: { type: "text" }, buttonLabel: { type: "text" }, backgroundImageUrl: { type: "text" } },
       defaultProps: CTA_DEFAULTS,
-      render: ({ heading, buttonLabel, puck }) => (
-        <div className="rounded-2xl bg-primary px-6 py-10 text-center text-primary-foreground">
-          <h2 className="text-2xl font-bold">{heading || CTA_DEFAULTS.heading}</h2>
-          <Button asChild size="lg" variant="secondary" className="mt-5">
-            <Link href={`/${(puck?.metadata as PuckProps)?.tenantSlug ?? ""}/quote`}>{buttonLabel || CTA_DEFAULTS.buttonLabel}</Link>
-          </Button>
+      render: ({ heading, buttonLabel, backgroundImageUrl, puck }) => (
+        <div className="relative overflow-hidden rounded-2xl px-6 py-14 text-center">
+          {backgroundImageUrl ? (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={backgroundImageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+              <div className="absolute inset-0 bg-primary/85" />
+            </>
+          ) : (
+            <div className="absolute inset-0 bg-primary" />
+          )}
+          <div className="relative text-primary-foreground">
+            <h2 className="text-2xl font-bold">{heading || CTA_DEFAULTS.heading}</h2>
+            <Button asChild size="lg" variant="secondary" className="mt-5">
+              <Link href={`/${(puck?.metadata as PuckProps)?.tenantSlug ?? ""}/quote`}>{buttonLabel || CTA_DEFAULTS.buttonLabel}</Link>
+            </Button>
+          </div>
         </div>
       ),
     },
@@ -194,7 +308,10 @@ export const puckConfig: Config = {
 export const RICH_DEFAULT_CONTENT = [
   { type: "Hero", props: { id: "hero-1", ...HERO_DEFAULTS } },
   { type: "ValueProps", props: { id: "value-1", items: VALUE_PROPS_DEFAULT } },
-  { type: "FeatureGrid", props: { id: "features-1", items: FEATURE_GRID_DEFAULT } },
+  { type: "ServiceGrid", props: { id: "services-1", items: SERVICE_GRID_DEFAULT } },
+  { type: "ImageTextSplit", props: { id: "about-1", ...IMAGE_TEXT_DEFAULTS, reverse: "false" } },
+  { type: "QuoteBanner", props: { id: "quote-1", text: QUOTE_DEFAULT } },
+  { type: "BenefitsSplit", props: { id: "benefits-1", ...BENEFITS_DEFAULTS, items: BENEFITS_ITEMS_DEFAULT } },
   { type: "Steps", props: { id: "steps-1", items: STEPS_DEFAULT } },
   { type: "LiveFAQ", props: { id: "faq-1", heading: "Frequently asked questions" } },
   { type: "CTASection", props: { id: "cta-1", ...CTA_DEFAULTS } },

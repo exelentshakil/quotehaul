@@ -1,7 +1,8 @@
 import { StatusBadge } from "@/components/ui/status-badge";
 import { MessageBubble } from "@/components/ui/message-bubble";
 import { StatCard } from "@/components/ui/stat-card";
-import { Sparkles } from "lucide-react";
+import { Avatar } from "@/components/ui/avatar";
+import { Sparkles, Send, Check, CreditCard } from "lucide-react";
 
 // Non-interactive recreations of the real dashboard, built from the same
 // shared atomic components (StatusBadge, MessageBubble, StatCard) and the
@@ -47,6 +48,84 @@ export function MessagingPreview() {
         <div className="flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm text-muted-foreground">
           <Sparkles className="h-3.5 w-3.5 text-primary" /> AI drafted a follow-up for 3 quiet leads
         </div>
+      </div>
+    </div>
+  );
+}
+
+export function QuoteFunnelPreview() {
+  return (
+    <div className="rounded-xl border border-border bg-card p-5 shadow-popover">
+      <div className="mb-4 h-1.5 w-full overflow-hidden rounded-full bg-muted"><div className="h-full w-2/3 rounded-full bg-primary" /></div>
+      <p className="text-sm font-semibold">What size is your property?</p>
+      <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+        {["Studio", "1 bed", "2 bed"].map((s, i) => (
+          <div key={s} className={`rounded-md border px-3 py-2 text-center ${i === 2 ? "border-primary bg-primary text-primary-foreground" : "border-border"}`}>{s}</div>
+        ))}
+      </div>
+      <div className="mt-4 rounded-lg bg-muted/60 p-3 text-center">
+        <p className="text-xs text-muted-foreground">Your instant estimate</p>
+        <p className="text-lg font-bold">£420–£510</p>
+      </div>
+    </div>
+  );
+}
+
+export function PageBuilderPreview() {
+  return (
+    <div className="rounded-xl border border-border bg-card shadow-popover">
+      <div className="flex items-center gap-2 border-b border-border px-4 py-2.5">
+        <Sparkles className="h-3.5 w-3.5 text-primary" />
+        <p className="text-xs font-semibold">AI page assistant</p>
+      </div>
+      <div className="space-y-2.5 p-4">
+        <div className="flex gap-2">
+          <Avatar name="You" className="h-6 w-6 text-[10px]" />
+          <div className="rounded-xl bg-primary px-3 py-1.5 text-xs text-primary-foreground">focus on long-distance moves, warm tone</div>
+        </div>
+        <div className="flex gap-2">
+          <Avatar name="AI" className="h-6 w-6 bg-primary text-[10px]" />
+          <div className="rounded-xl bg-muted px-3 py-1.5 text-xs text-muted-foreground">Done — built from your live components.</div>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 border-t border-border p-3">
+        <div className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-xs text-muted-foreground">Describe the page you want...</div>
+        <Send className="h-3.5 w-3.5 text-primary" />
+      </div>
+    </div>
+  );
+}
+
+export function CapacityPreview() {
+  const days = [
+    { d: "Mon 4", status: "Open" }, { d: "Tue 5", status: "Near capacity" }, { d: "Wed 6", status: "Full" }, { d: "Thu 7", status: "Blocked" },
+  ];
+  const styles: Record<string, string> = { Open: "bg-success/10 text-success", "Near capacity": "bg-warning/10 text-warning", Full: "bg-danger/10 text-danger", Blocked: "bg-muted text-muted-foreground" };
+  return (
+    <div className="rounded-xl border border-border bg-card p-4 shadow-popover">
+      <p className="mb-3 text-sm font-semibold">Next few days</p>
+      <div className="space-y-2">
+        {days.map((d) => (
+          <div key={d.d} className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-xs">
+            <span className="font-medium">{d.d}</span>
+            <span className={`rounded-full px-2 py-0.5 font-medium ${styles[d.status]}`}>{d.status}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function InvoicingPreview() {
+  return (
+    <div className="rounded-xl border border-border bg-card p-5 shadow-popover">
+      <p className="flex items-center gap-2 text-sm font-semibold"><CreditCard className="h-4 w-4 text-primary" /> Request payment</p>
+      <div className="mt-3 flex items-center gap-2">
+        <div className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-xs text-muted-foreground">Deposit</div>
+        <div className="w-16 rounded-md border border-input bg-background px-3 py-2 text-xs text-muted-foreground">£150</div>
+      </div>
+      <div className="mt-3 flex items-center gap-2 rounded-md bg-success/10 px-3 py-2 text-xs text-success">
+        <Check className="h-3.5 w-3.5" /> Paid straight into your own Stripe account
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getSessionUser, getTenantMembership } from "@/lib/dal";
 import type { Quote } from "@/types/database";
 import { StatCard } from "@/components/ui/stat-card";
 import { KanbanBoard } from "@/components/kanban-board";
@@ -7,13 +8,13 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Inbox } from "lucide-react";
 
 export default async function DashboardPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const { data: membership } = await supabase.from("tenant_users").select("tenant_id").eq("user_id", user.id).maybeSingle();
+  const membership = await getTenantMembership(user.id);
   if (!membership) return <p>No company found for your account.</p>;
 
+  const supabase = await createClient();
   const { data: quotes } = await supabase
     .from("quotes")
     .select("*")

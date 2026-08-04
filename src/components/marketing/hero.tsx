@@ -15,7 +15,7 @@ export function Hero() {
         className="pointer-events-none absolute inset-x-0 -top-40 -z-10 h-[40rem] bg-[radial-gradient(60%_50%_at_50%_0%,hsl(var(--primary)/0.18),transparent_70%)]"
       />
       <div className="mx-auto max-w-5xl px-6 pb-16 pt-20 text-center sm:pt-28">
-        <Badge variant="secondary" className="mb-5">For UK & US removal companies</Badge>
+        <Badge variant="secondary" className="mb-5">By movers, for movers</Badge>
         <h1 className="mx-auto max-w-3xl text-4xl font-bold tracking-tight sm:text-6xl">
           Turn website visitors into <span className="text-primary">booked removals</span>
         </h1>

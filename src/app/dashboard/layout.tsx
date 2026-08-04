@@ -1,21 +1,16 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { Truck, LogOut } from "lucide-react";
+import { getSessionUser, getTenantMembership } from "@/lib/dal";
+import { DashboardNav } from "@/components/dashboard-nav";
+import { Avatar } from "@/components/ui/avatar";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const { data: membership } = await supabase
-    .from("tenant_users")
-    .select("tenant_id, tenants(company_name, slug, subscription_status, trial_ends_at)")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  const tenant = membership?.tenants as unknown as
-    | { company_name: string; slug: string; subscription_status: string | null; trial_ends_at: string | null }
-    | undefined;
+  const membership = await getTenantMembership(user.id);
+  const tenant = membership?.tenants;
 
   const isTrialing = tenant?.subscription_status === "trialing";
   const trialDaysLeft = isTrialing && tenant?.trial_ends_at
@@ -30,23 +25,28 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <Link href="/dashboard/settings" className="underline underline-offset-2">manage billing</Link>
         </div>
       )}
-      <header className="border-b border-border bg-card">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div>
-            <p className="text-sm text-muted-foreground">QuoteHaul dashboard</p>
-            <p className="font-semibold">{tenant?.company_name ?? "Your company"}</p>
+      <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+              <Truck className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">QuoteHaul</p>
+              <p className="text-sm font-semibold leading-tight">{tenant?.company_name ?? "Your company"}</p>
+            </div>
           </div>
-          <nav className="flex items-center gap-6 text-sm">
-            <Link href="/dashboard" className="hover:underline">Leads</Link>
-            <Link href="/dashboard/capacity" className="hover:underline">Capacity</Link>
-            <Link href="/dashboard/settings" className="hover:underline">Settings</Link>
-            {tenant?.slug && (
-              <a href={`/${tenant.slug}`} target="_blank" className="hover:underline">View public funnel ↗</a>
-            )}
+
+          <DashboardNav tenantSlug={tenant?.slug} />
+
+          <div className="flex items-center gap-3">
+            <Avatar name={tenant?.company_name ?? "?"} />
             <form action="/api/logout" method="post">
-              <button className="hover:underline">Log out</button>
+              <button className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground" aria-label="Log out" title="Log out">
+                <LogOut className="h-4 w-4" />
+              </button>
             </form>
-          </nav>
+          </div>
         </div>
       </header>
       <div className="mx-auto max-w-6xl px-6 py-8">{children}</div>

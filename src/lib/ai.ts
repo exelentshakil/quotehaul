@@ -1,14 +1,20 @@
 import type { Quote, Tenant } from "@/types/database";
 import { RICH_DEFAULT_CONTENT } from "@/lib/puck-config";
 
-const PAGE_BLOCK_SCHEMA = `- Hero: heading (text), subheading (text), ctaLabel (text)
+const PAGE_BLOCK_SCHEMA = `- Hero: heading, subheading, ctaLabel (all text) — always the first block
 - ValueProps: items (comma-separated short claims, no numbers/stats)
+- ServiceGrid: items (array of {title, body, icon}) — icon must be one of: Home, Truck, Building2, PackageCheck, Warehouse, Users, ShieldCheck, Clock, MapPin, Boxes. 3 services this company offers.
+- ImageTextSplit: heading, body, linkLabel (text), reverse ("true" or "false") — an About/why-us section, no image fields (leave imageUrl unset)
+- QuoteBanner: text (one short, warm, italicized statement — not a fake customer testimonial, a company promise/philosophy)
+- BenefitsSplit: heading, body (text), items (comma-separated short benefit phrases)
 - FeatureGrid: items (array of {title, body})
 - Steps: items (array of {title, body}), 3 steps describing how the quote-to-booking process works
 - LiveFAQ: heading (text) — content is pulled live from the company's real FAQ, do not invent Q&As
-- CTASection: heading (text), buttonLabel (text)
+- CTASection: heading (text), buttonLabel (text) — always the last block
 - TextBlock: text (text)
-- TrustBadges / Divider: no meaningful editable text`;
+- TrustBadges / Divider: no meaningful editable text
+
+A great page uses 6-9 blocks in a sensible order: Hero, then a mix of ValueProps/ServiceGrid/ImageTextSplit/QuoteBanner/BenefitsSplit/Steps, then LiveFAQ, then CTASection last.`;
 
 export type PuckContent = { type: string; props: Record<string, unknown> }[];
 
@@ -66,7 +72,7 @@ export async function generatePageLayout(tenant: Tenant, prompt: string): Promis
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return RICH_DEFAULT_CONTENT;
 
-  const fullPrompt = `Generate a landing page layout for "${tenant.company_name}", a UK/US removal (moving) company, using ONLY these block types and fields:\n${PAGE_BLOCK_SCHEMA}\n\nCompany's request: ${prompt}\n\nReply with strict JSON only, no markdown: an array of {"type": "<BlockName>", "props": {...matching fields for that type...}}. Always start with a Hero block. Give each block props a unique "id" string.`;
+  const fullPrompt = `Generate a landing page layout for "${tenant.company_name}", a UK removal (moving) company, using ONLY these block types and fields:\n${PAGE_BLOCK_SCHEMA}\n\nCompany's request: ${prompt}\n\nReply with strict JSON only, no markdown: an array of {"type": "<BlockName>", "props": {...matching fields for that type...}}. Always start with a Hero block. Give each block props a unique "id" string.`;
 
   try {
     const res = await fetch(

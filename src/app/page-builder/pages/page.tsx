@@ -2,17 +2,18 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getSessionUser, getTenantMembership } from "@/lib/dal";
 import type { PageLayout, Plan, Tenant } from "@/types/database";
 import { PagesList } from "@/components/pages-list";
 
 export default async function PagesPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const { data: membership } = await supabase.from("tenant_users").select("tenant_id").eq("user_id", user.id).maybeSingle();
+  const membership = await getTenantMembership(user.id);
   if (!membership) return <p>No company found for your account.</p>;
 
+  const supabase = await createClient();
   const { data: tenant } = await supabase.from("tenants").select("*").eq("id", membership.tenant_id).single<Tenant>();
   const { data: plan } = await supabase.from("plans").select("*").eq("id", tenant?.plan_id).single<Plan>();
   if (!tenant) return <p>No company found.</p>;

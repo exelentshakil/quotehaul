@@ -9,7 +9,7 @@ import { puckConfig, RICH_DEFAULT_CONTENT, type PuckProps } from "@/lib/puck-con
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
-import { Sparkles, Send, PanelRightClose, PanelRightOpen, FileStack } from "lucide-react";
+import { Sparkles, Send, PanelRightClose, PanelRightOpen, FileStack, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PageLayout } from "@/types/database";
 
@@ -94,6 +94,10 @@ export function PuckEditor({
   return (
     <div className="flex h-screen flex-col">
       <div className="flex flex-wrap items-center gap-3 border-b border-border bg-card px-4 py-2">
+        <Link href="/dashboard/settings" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-4 w-4" /> Dashboard
+        </Link>
+        <div className="h-5 w-px bg-border" />
         <select
           value={selectedId ?? ""}
           onChange={(e) => setSelectedId(e.target.value || null)}

@@ -5,12 +5,13 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
   {
     title: "Product",
     links: [
-      { label: "Quote funnel & wizard", href: "/#features" },
-      { label: "Kanban leads board", href: "/#features" },
-      { label: "AI follow-up & scoring", href: "/#features" },
-      { label: "AI page builder", href: "/#features" },
-      { label: "Capacity & calendar", href: "/#pricing" },
-      { label: "Invoicing (Stripe Connect)", href: "/#pricing" },
+      { label: "Quote funnel & wizard", href: "/#quote-funnel" },
+      { label: "Kanban leads board", href: "/#kanban" },
+      { label: "Order messaging", href: "/#order-messaging" },
+      { label: "AI follow-up & scoring", href: "/#ai-followup" },
+      { label: "AI page builder", href: "/#ai-page-builder" },
+      { label: "Capacity & calendar", href: "/#capacity" },
+      { label: "Invoicing", href: "/#invoicing" },
     ],
   },
   {
@@ -46,7 +47,7 @@ export function SiteFooter() {
           <div className="flex items-center gap-2 font-semibold">
             <Truck className="h-5 w-5 text-primary" /> QuoteHaul
           </div>
-          <p className="mt-2 text-sm text-muted-foreground">Instant quote & lead system for removal companies, built for the UK & US.</p>
+          <p className="mt-2 text-sm text-muted-foreground">Instant quote & lead system for removal companies — built by movers, for movers.</p>
         </div>
         {COLUMNS.map((col) => (
           <div key={col.title}>
