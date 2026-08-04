@@ -19,8 +19,9 @@ export function AppSidebar({
   userEmail,
   tenantSlug,
   newLeadsCount = 0,
+  avatarUrl,
   ...props
-}: React.ComponentProps<typeof Sidebar> & { companyName: string; userEmail: string; tenantSlug?: string; newLeadsCount?: number }) {
+}: React.ComponentProps<typeof Sidebar> & { companyName: string; userEmail: string; tenantSlug?: string; newLeadsCount?: number; avatarUrl?: string | null }) {
   const withBadges = NAV_ITEMS.map((item) => (item.title === "Leads" ? { ...item, badge: newLeadsCount } : item));
   const items = tenantSlug
     ? [...withBadges, { title: "Public funnel", url: `/${tenantSlug}`, icon: ExternalLink, external: true }]
@@ -49,7 +50,7 @@ export function AppSidebar({
         <NavMain items={items} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser companyName={companyName} userEmail={userEmail} tenantSlug={tenantSlug} />
+        <NavUser companyName={companyName} userEmail={userEmail} tenantSlug={tenantSlug} avatarUrl={avatarUrl} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

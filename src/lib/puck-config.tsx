@@ -1,12 +1,24 @@
-import type { Config, Overrides, Viewports } from "@puckeditor/core";
+import type { Config, CustomField, Overrides, Viewports } from "@puckeditor/core";
 import Link from "next/link";
 import {
   Check, Sparkles, Quote as QuoteIcon, Home, Truck, Building2, PackageCheck,
-  Warehouse, Users, ShieldCheck, Clock, MapPin, Boxes,
+  Warehouse, Users, ShieldCheck, Clock, MapPin, Boxes, Star,
   LayoutTemplate, Columns2, Grid3x3, LayoutGrid, CheckCircle2, ListOrdered,
-  CheckCheck, HelpCircle, MousePointerClick, Type, Minus, PanelTop, PanelBottom,
+  CheckCheck, HelpCircle, MousePointerClick, Type, Minus, PanelTop, PanelBottom, Images, MessageSquareQuote,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Avatar } from "@/components/ui/avatar";
+import { ImageUpload } from "@/components/image-upload";
+
+// One custom field, reused everywhere a block needs an image — real upload
+// via Supabase Storage (src/app/api/upload/route.ts), not a paste-a-URL text
+// box. `kind` just namespaces the storage path per use (page-image, logo, …).
+function imageField(kind: string, shape: "wide" | "square" = "wide"): CustomField<string> {
+  return {
+    type: "custom",
+    render: ({ value, onChange }) => <ImageUpload value={value} onChange={onChange} kind={kind} shape={shape} />,
+  };
+}
 
 // Tenant pages are now full-width (each block manages its own inner
 // max-width, up to max-w-5xl/1024px) rather than trapped in a narrow
@@ -34,6 +46,8 @@ const COMPONENT_ICONS: Record<string, React.ComponentType<{ className?: string }
   Divider: Minus,
   Header: PanelTop,
   Footer: PanelBottom,
+  Gallery: Images,
+  Testimonials: MessageSquareQuote,
 };
 
 export const puckOverrides: Partial<Overrides> = {
@@ -121,6 +135,12 @@ const FOOTER_LINKS_DEFAULT = [
   { label: "FAQ", url: "#faq" },
   { label: "Get a quote", url: "#" },
 ];
+const GALLERY_DEFAULT: { imageUrl: string }[] = [{ imageUrl: "" }, { imageUrl: "" }, { imageUrl: "" }];
+const RATING_OPTIONS = [1, 2, 3, 4, 5].map((n) => ({ label: `${n} star${n === 1 ? "" : "s"}`, value: String(n) }));
+const TESTIMONIALS_DEFAULT = [
+  { name: "Sarah T.", quote: "Booked our move in five minutes and the whole thing went smoothly on the day.", avatarUrl: "", rating: "5" },
+  { name: "James M.", quote: "Clear pricing up front, no surprises — exactly what we needed.", avatarUrl: "", rating: "5" },
+];
 const SERVICE_GRID_DEFAULT: { title: string; body: string; icon: IconName }[] = [
   { title: "Home Removals", body: "A complete residential move — furniture, packing, and secure transport.", icon: "Home" },
   { title: "Man & Van", body: "For smaller jobs — quick, careful, and fairly priced.", icon: "Truck" },
@@ -150,7 +170,7 @@ export const puckConfig: Config = {
         heading: { type: "text" },
         subheading: { type: "textarea" },
         ctaLabel: { type: "text" },
-        backgroundImageUrl: { type: "text" },
+        backgroundImageUrl: imageField("page-image"),
         backgroundImageCredit: { type: "text" },
         spacing: SPACING_FIELD,
       },
@@ -187,7 +207,7 @@ export const puckConfig: Config = {
         heading: { type: "text" },
         body: { type: "textarea" },
         linkLabel: { type: "text" },
-        imageUrl: { type: "text" },
+        imageUrl: imageField("page-image"),
         imageCredit: { type: "text" },
         reverse: { type: "radio", options: [{ label: "Image left", value: "false" }, { label: "Image right", value: "true" }] },
         background: BACKGROUND_FIELD,
@@ -393,7 +413,7 @@ export const puckConfig: Config = {
       },
     },
     CTASection: {
-      fields: { heading: { type: "text" }, buttonLabel: { type: "text" }, backgroundImageUrl: { type: "text" }, spacing: SPACING_FIELD },
+      fields: { heading: { type: "text" }, buttonLabel: { type: "text" }, backgroundImageUrl: imageField("page-image"), spacing: SPACING_FIELD },
       defaultProps: { ...CTA_DEFAULTS, spacing: "comfortable" },
       render: ({ heading, buttonLabel, backgroundImageUrl, spacing, puck }) => (
         <div className={`relative w-full overflow-hidden text-center ${SPACING_MAP[(spacing as SpacingKey) || "comfortable"]}`}>
@@ -426,6 +446,7 @@ export const puckConfig: Config = {
     },
     Header: {
       fields: {
+        logoUrl: imageField("logo", "square"),
         tagline: { type: "text" },
         phone: { type: "text" },
         buttonLabel: { type: "text" },
@@ -434,10 +455,16 @@ export const puckConfig: Config = {
       // A promotional top band placed inside the page content, independent
       // of the site's persistent TenantNav — for a "limited slots this
       // month" style banner a tenant can add, edit, or remove per page.
-      render: ({ tagline, phone, buttonLabel, puck }) => (
+      render: ({ logoUrl, tagline, phone, buttonLabel, puck }) => (
         <div className="w-full border-b border-border bg-muted/40">
           <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-6 py-3">
-            <p className="text-sm font-medium">{tagline || HEADER_DEFAULTS.tagline}</p>
+            <div className="flex items-center gap-2.5">
+              {logoUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={logoUrl} alt="" className="h-8 w-8 rounded-md object-cover" />
+              )}
+              <p className="text-sm font-medium">{tagline || HEADER_DEFAULTS.tagline}</p>
+            </div>
             <div className="flex items-center gap-4 text-sm">
               {phone && <a href={`tel:${phone}`} className="font-medium text-muted-foreground hover:text-foreground">{phone}</a>}
               <Button asChild size="sm">
@@ -476,6 +503,84 @@ export const puckConfig: Config = {
                 {phone && <li><a href={`tel:${phone}`} className="hover:text-foreground hover:underline">{phone}</a></li>}
                 {email && <li><a href={`mailto:${email}`} className="hover:text-foreground hover:underline">{email}</a></li>}
               </ul>
+            </div>
+          </div>
+        );
+      },
+    },
+    Gallery: {
+      fields: {
+        heading: { type: "text" },
+        images: {
+          type: "array",
+          arrayFields: { imageUrl: imageField("gallery") },
+          defaultItemProps: { imageUrl: "" },
+        },
+        columns: COLUMNS_FIELD,
+        spacing: SPACING_FIELD,
+      },
+      defaultProps: { heading: "", images: GALLERY_DEFAULT, columns: "3", spacing: "comfortable" },
+      render: ({ heading, images, columns, spacing }) => {
+        const list: { imageUrl: string }[] = (images?.length ? images : GALLERY_DEFAULT).filter((i: { imageUrl: string }) => i.imageUrl);
+        if (list.length === 0) return <></>;
+        return (
+          <div className={`w-full ${SPACING_MAP[(spacing as SpacingKey) || "comfortable"]}`}>
+            <div className="mx-auto max-w-5xl px-6">
+              {heading && <h2 className="mb-6 text-center text-2xl font-bold tracking-tight">{heading}</h2>}
+              <div className={`grid gap-3 ${COLUMNS_CLASS[columns || "3"]}`}>
+                {list.map((img, i) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img key={i} src={img.imageUrl} alt="" className="aspect-square w-full rounded-xl object-cover shadow-card" />
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      },
+    },
+    Testimonials: {
+      fields: {
+        heading: { type: "text" },
+        items: {
+          type: "array",
+          arrayFields: {
+            name: { type: "text" },
+            quote: { type: "textarea" },
+            avatarUrl: imageField("avatar", "square"),
+            rating: { type: "select", options: RATING_OPTIONS },
+          },
+          defaultItemProps: TESTIMONIALS_DEFAULT[0],
+        },
+        background: BACKGROUND_FIELD,
+      },
+      defaultProps: { heading: "What customers say", items: TESTIMONIALS_DEFAULT, background: "tint" },
+      render: ({ heading, items, background }) => {
+        const list: typeof TESTIMONIALS_DEFAULT = items?.length ? items : TESTIMONIALS_DEFAULT;
+        return (
+          <div className={`w-full ${BG_MAP[(background as BgKey) || "tint"]}`}>
+            <div className="mx-auto max-w-5xl px-6 py-16">
+              {heading && <h2 className="mb-8 text-center text-2xl font-bold tracking-tight">{heading}</h2>}
+              <div className="grid gap-5 sm:grid-cols-2">
+                {list.map((t, i) => (
+                  <div key={i} className="rounded-2xl border border-border bg-card p-6 shadow-card">
+                    <div className="flex gap-0.5">
+                      {Array.from({ length: Number(t.rating) || 5 }).map((_, s) => (
+                        <Star key={s} className="h-3.5 w-3.5 fill-warning text-warning" />
+                      ))}
+                    </div>
+                    <p className="mt-3 text-sm text-foreground">&ldquo;{t.quote}&rdquo;</p>
+                    <div className="mt-4 flex items-center gap-2.5">
+                      {t.avatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={t.avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
+                      ) : (
+                        <Avatar name={t.name || "?"} className="h-8 w-8 text-[10px]" />
+                      )}
+                      <p className="text-sm font-medium">{t.name}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         );

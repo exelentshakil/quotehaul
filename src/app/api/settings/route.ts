@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     .from("tenants")
     .update({
       company_name: body.companyName,
-      branding: { primary_color: body.primaryColor, phone: body.phone, logo_url: null },
+      branding: { primary_color: body.primaryColor, phone: body.phone, logo_url: body.logoUrl || null },
     })
     .eq("id", membership.tenant_id);
 
