@@ -73,10 +73,10 @@ export default function HomePage() {
       <div id="invoicing">
         <StatFeatureShowcase
           eyebrow="Invoicing"
-          title="Get paid without chasing an invoice"
-          body="Request a deposit or final balance straight from the order — paid directly into your own Stripe account. QuoteHaul never holds your money."
+          title="Send an invoice, get paid however you already do"
+          body="Once a job's confirmed and done, send a deposit or balance request straight into the order thread — the customer gets it by email. You get paid your own way: bank transfer, card reader, cash. QuoteHaul never touches your money."
           stat="£0"
-          statLabel="held by QuoteHaul, ever — it lands straight in your own Stripe account"
+          statLabel="held by QuoteHaul, ever"
           visual={<InvoicingPreview />}
         />
       </div>

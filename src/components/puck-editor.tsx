@@ -9,7 +9,7 @@ import { puckConfig, puckOverrides, PUCK_VIEWPORTS, RICH_DEFAULT_CONTENT, type P
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
-import { Sparkles, Send, PanelRightClose, PanelRightOpen, FileStack, ArrowLeft } from "lucide-react";
+import { Sparkles, Send, PanelRightClose, PanelRightOpen, FileStack, ArrowLeft, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PageLayout } from "@/types/database";
 
@@ -108,6 +108,13 @@ export function PuckEditor({
             <option key={v.id} value={v.id}>{v.name}{v.id === activeId ? " — Live" : ""}</option>
           ))}
         </select>
+        {selectedId && (
+          <Button size="sm" variant="ghost" asChild>
+            <a href={`/${tenantSlug}?preview=${selectedId}`} target="_blank" rel="noreferrer">
+              <Eye className="h-3.5 w-3.5" /> Preview
+            </a>
+          </Button>
+        )}
         {selectedId && selectedId !== activeId && (
           <Button size="sm" variant="outline" onClick={() => activate(selectedId)}>Set as live</Button>
         )}

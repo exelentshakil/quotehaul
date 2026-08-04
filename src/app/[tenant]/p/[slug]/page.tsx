@@ -26,9 +26,7 @@ export default async function TenantSecondaryPage({ params }: { params: Promise<
   return (
     <main style={tenantThemeStyle(tenant.branding?.primary_color)} className="min-h-screen">
       <TenantNav tenantSlug={tenantSlug} companyName={tenant.company_name} phone={tenant.branding?.phone ?? null} pages={pages} />
-      <div className="mx-auto max-w-3xl px-6 py-16">
-        <Render config={puckConfig} data={page.data as Data} metadata={{ tenantSlug, faqItems }} />
-      </div>
+      <Render config={puckConfig} data={page.data as Data} metadata={{ tenantSlug, faqItems }} />
       {plan?.slug === "paid" && <ChatWidget tenantSlug={tenantSlug} companyName={tenant.company_name} />}
     </main>
   );

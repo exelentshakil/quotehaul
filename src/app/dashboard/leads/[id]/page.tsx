@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { LeadScore, OrderMessage, Plan, Quote, StripeAccount } from "@/types/database";
+import type { LeadScore, OrderMessage, Plan, Quote } from "@/types/database";
 import { ProjectDataPanel } from "@/components/ui/project-data-panel";
 import { OrderMessageThread } from "@/components/order-message-thread";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { LeadScorePanel } from "@/components/lead-score-panel";
-import { RequestPaymentPanel } from "@/components/request-payment-panel";
+import { SendInvoicePanel } from "@/components/send-invoice-panel";
 import ConfirmForm from "./ConfirmForm";
 
 export default async function LeadDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -16,14 +16,13 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
 
   // Independent queries fired together — each round trip run serially was
   // adding several hundred ms of pure network latency to this page.
-  const [{ data: messages }, { data: leadScore }, { data: tenant }, { data: stripeAccount }] = await Promise.all([
+  const [{ data: messages }, { data: leadScore }, { data: tenant }] = await Promise.all([
     supabase.from("order_messages").select("*").eq("quote_id", id).order("created_at", { ascending: true }).returns<OrderMessage[]>(),
     supabase.from("lead_scores").select("*").eq("quote_id", id).maybeSingle<LeadScore>(),
     supabase.from("tenants").select("plan_id").eq("id", quote.tenant_id).single(),
-    supabase.from("stripe_accounts").select("*").eq("tenant_id", quote.tenant_id).maybeSingle<StripeAccount>(),
   ]);
   const { data: plan } = await supabase.from("plans").select("*").eq("id", tenant?.plan_id).single<Plan>();
-  const canRequestPayment = plan?.slug === "paid" && stripeAccount?.status === "verified";
+  const canSendInvoice = plan?.slug === "paid";
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
@@ -47,7 +46,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
         />
 
         <ConfirmForm quote={quote} />
-        {canRequestPayment && <RequestPaymentPanel quoteId={id} defaultAmount={quote.confirmed_price ?? quote.estimate_high ?? 0} />}
+        {canSendInvoice && <SendInvoicePanel quoteId={id} defaultAmount={quote.confirmed_price ?? quote.estimate_high ?? 0} />}
       </div>
 
       <div className="space-y-6">

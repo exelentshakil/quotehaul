@@ -119,13 +119,13 @@ export function CapacityPreview() {
 export function InvoicingPreview() {
   return (
     <div className="rounded-2xl border border-border bg-card p-6 shadow-popover">
-      <p className="flex items-center gap-2 text-sm font-semibold"><CreditCard className="h-4 w-4 text-primary" /> Request payment</p>
+      <p className="flex items-center gap-2 text-sm font-semibold"><CreditCard className="h-4 w-4 text-primary" /> Send invoice</p>
       <div className="mt-4 flex items-center gap-2">
         <div className="flex-1 rounded-md border border-input bg-background px-3 py-2.5 text-xs text-muted-foreground">Deposit</div>
         <div className="w-16 rounded-md border border-input bg-background px-3 py-2.5 text-xs text-muted-foreground">£150</div>
       </div>
       <div className="mt-3 flex items-center gap-2 rounded-md bg-success/10 px-3 py-2.5 text-xs text-success">
-        <Check className="h-3.5 w-3.5" /> Paid straight into your own Stripe account
+        <Check className="h-3.5 w-3.5" /> Sent to the order thread — paid your own way
       </div>
     </div>
   );

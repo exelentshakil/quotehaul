@@ -25,13 +25,13 @@ export function Hero() {
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Button asChild size="lg">
-            <Link href="/signup">Start your 3-day free trial <ArrowRight className="h-4 w-4" /></Link>
+            <Link href="/signup">Start your 7-day free trial <ArrowRight className="h-4 w-4" /></Link>
           </Button>
           <Button asChild variant="outline" size="lg">
             <a href="#pricing">See pricing</a>
           </Button>
         </div>
-        <p className="mt-4 text-xs text-muted-foreground">Card required to start — you won&apos;t be charged for 3 days, cancel any time.</p>
+        <p className="mt-4 text-xs text-muted-foreground">Card required to start — you won&apos;t be charged for 7 days, cancel any time.</p>
 
         <div className="relative mx-auto mt-14 max-w-3xl">
           {DEMO_VIDEO_URL ? (
