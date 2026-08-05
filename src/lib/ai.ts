@@ -20,25 +20,13 @@ export type PuckContent = { type: string; props: Record<string, unknown> }[];
 
 export type LeadScoreResult = { score: number; factors: Record<string, number | string | boolean>; followUpDraft: string };
 
-/**
- * Rules-based fallback engine for lead scoring evaluations.
- */
-function ruleBasedFallback(quote: Quote, tenant: Tenant): LeadScoreResult {
-  return {
-    score: 50,
-    factors: { reasons: "Fallback logic applied due to missing or failed remote AI execution." },
-    followUpDraft: `Hi there, we noticed your moving inquiry with ${tenant.company_name}. Let us know if we can help you with your journey from ${quote.from_postcode} to ${quote.to_postcode}!`,
-  };
-}
-
-/**
- * 1. METHOD: scoreLeadAndDraftFollowUp
- * Evaluates moving-company leads and drafts follow-up text using the Gemini REST API gateway.
- */
+// Single AI entry point so the provider (Gemini today) is swappable per
+// feature without touching call sites. Falls back to a rule-based score and
+// a template follow-up if no API key is set, so the app runs end-to-end
+// without one — same pattern as the distance/email/SMS integrations.
 export async function scoreLeadAndDraftFollowUp(quote: Quote, tenant: Tenant): Promise<LeadScoreResult> {
   const apiKey = process.env.GEMINI_API_KEY;
   const fallback = ruleBasedFallback(quote, tenant);
-
   if (!apiKey) {
     console.error("[ai] scoreLeadAndDraftFollowUp: GEMINI_API_KEY is not set in this environment");
     return fallback;
@@ -53,19 +41,24 @@ Company: ${tenant.company_name}.
 Reply with strict JSON only, no markdown: {"score": <0-100 integer>, "reasons": ["short reason", ...], "followUp": "<2-3 sentence friendly follow-up message from ${tenant.company_name} to the customer, signed off with the company name>"}`;
 
   try {
-    // FIXED: Target standard v1beta gateway route using key parameters
-    const url = `https://googleapis.com{apiKey}`;
-
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          responseMimeType: "application/json"
+    const res = await fetch(
+        // UPDATED: Standard REST endpoint for Gemini API
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            // UPDATED: Correct contents payload structure for the Gemini API
+            contents: [{
+              parts: [{ text: prompt }]
+            }],
+            // UPDATED: Correct generation config for enforcing JSON output
+            generationConfig: {
+              responseMimeType: "application/json"
+            }
+          })
         }
-      })
-    });
+    );
 
     if (!res.ok) {
       const body = await res.text().catch(() => "<unreadable body>");
@@ -74,9 +67,9 @@ Reply with strict JSON only, no markdown: {"score": <0-100 integer>, "reasons": 
 
     const data = await res.json();
 
-    // FIXED: Safe deep tree extraction pattern for Gemini REST returns
+    // UPDATED: Extracted using the standard Gemini response schema
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) throw new Error("No textual response returned from Gemini API.");
+    if (!text) throw new Error("Empty response from Gemini");
 
     const parsed = JSON.parse(text);
 
@@ -91,46 +84,10 @@ Reply with strict JSON only, no markdown: {"score": <0-100 integer>, "reasons": 
   }
 }
 
-/**
- * 2. METHOD: answerFunnelQuestion
- * RESTORED: Analyzes customer questions submitted via the booking conversion layout interface.
- */
-export async function answerFunnelQuestion(question: string, tenant: Tenant): Promise<string> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  const fallbackMessage = `Thanks for your question! A member of the ${tenant.company_name} team will review this and get back to you shortly.`;
-
-  if (!apiKey) return fallbackMessage;
-
-  const prompt = `You are a customer support agent for "${tenant.company_name}", a moving/removal company in the UK. 
-Answering this customer question regarding their move: "${question}".
-Provide a concise, helpful, and polite response in 1-2 sentences max. Do not invent pricing or technical constraints if not known.`;
-
-  try {
-    const url = `https://googleapis.com{apiKey}`;
-
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }]
-      })
-    });
-
-    if (!res.ok) throw new Error(`Gemini status ${res.status}`);
-
-    const data = await res.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    return text ? text.trim() : fallbackMessage;
-  } catch (err) {
-    console.error("[ai] answerFunnelQuestion failed:", err);
-    return fallbackMessage;
-  }
-}
-
-/**
- * 3. METHOD: buildLayoutPrompt
- * Combines available real-time tenant profile datasets to produce descriptive, unique layout directives.
- */
+// Builds the shared prompt for both providers — pulls in every bit of real
+// tenant data available (not just company name) so repeated generations for
+// different companies actually diverge instead of converging on the same
+// generic 6-9 block structure.
 function buildLayoutPrompt(tenant: Tenant, prompt: string, rateConfig?: RateConfig | null): string {
   const propertyTypes = rateConfig ? Object.keys(rateConfig.rate_per_room).join(", ") : null;
   const details = [
@@ -143,20 +100,16 @@ function buildLayoutPrompt(tenant: Tenant, prompt: string, rateConfig?: RateConf
   return `Generate a landing page layout for "${tenant.company_name}", a UK removal (moving) company, using ONLY these block types and fields:\n${PAGE_BLOCK_SCHEMA}\n\n${details ? `Known details about this specific company:\n${details}\n\n` : ""}Company's request: ${prompt}\n\nVary the block selection, order, and copy meaningfully based on this company's specific details and request — do not default to the same generic structure every time. Reply with strict JSON only, no markdown: an array of {"type": "<BlockName>", "props": {...matching fields for that type...}}. Always start with a Hero block. Give each block props a unique "id" string.`;
 }
 
-/**
- * 4. METHOD: parseLayoutJson
- * Safely parses and asserts layout contents to prevent corrupt rendering actions inside Puck.
- */
 function parseLayoutJson(text: string): PuckContent {
   const parsed = JSON.parse(text);
   if (!Array.isArray(parsed) || parsed.length === 0) throw new Error("Empty layout returned");
   return parsed;
 }
 
-/**
- * 5. METHOD: generateLayoutViaOpenAI
- * OpenAI fallback framework executing landing page fallback procedures when OpenAI tokens are set.
- */
+// OpenAI fallback — only attempted if OPENAI_API_KEY is set; a plain fetch
+// call (same style as the Gemini calls above) rather than pulling in the
+// full SDK for one endpoint. Silently unavailable if the key is unset, same
+// graceful-degradation pattern as the rest of this file.
 async function generateLayoutViaOpenAI(fullPrompt: string): Promise<PuckContent | null> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
@@ -180,8 +133,6 @@ async function generateLayoutViaOpenAI(fullPrompt: string): Promise<PuckContent 
     }
     const data = await res.json();
     const text = data.choices?.[0]?.message?.content;
-    if (!text) throw new Error("Empty chat completion payload received.");
-
     const parsed = JSON.parse(text);
     const blocks = Array.isArray(parsed) ? parsed : parsed.blocks;
     if (!Array.isArray(blocks) || blocks.length === 0) throw new Error("Empty layout returned");
@@ -192,9 +143,198 @@ async function generateLayoutViaOpenAI(fullPrompt: string): Promise<PuckContent 
   }
 }
 
-/**
- * 6. METHOD: generateLayoutViaGemini
- * RESTORED & COMPLETED: Core Gemini "assembly mode" engine layout construction processor loop.
- */
-export async function generateLayoutViaGemini(tenant: Tenant, prompt: string, rateConfig?: RateConfig | null): Promise<PuckContent> {
+// Gemini "assembly mode" — composes a page from the existing registered Puck
+// blocks only (never invents new component types, see PRD §4.1). Falls back
+// to OpenAI (if configured) and then the rich default template on failure,
+// so a regenerate attempt can never leave the tenant with a broken page.
+export async function generatePageLayout(tenant: Tenant, prompt: string, rateConfig?: RateConfig | null): Promise<PuckContent> {
   const apiKey = process.env.GEMINI_API_KEY;
+  const fullPrompt = buildLayoutPrompt(tenant, prompt, rateConfig);
+
+  if (!apiKey) {
+    console.error("[ai] generatePageLayout: GEMINI_API_KEY is not set in this environment");
+    return (await generateLayoutViaOpenAI(fullPrompt)) ?? buildDefaultContent(tenant);
+  }
+
+  try {
+    const res = await fetch(
+        // UPDATED: Points to the standard standard v1beta API endpoint
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            // UPDATED: Correct nested structure required by the Gemini REST API
+            contents: [{
+              parts: [{ text: fullPrompt }]
+            }],
+            generationConfig: {
+              responseMimeType: "application/json"
+            }
+          })
+        }
+    );
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "<unreadable body>");
+      throw new Error(`Gemini API ${res.status}: ${body}`);
+    }
+
+    const data = await res.json();
+
+    // UPDATED: Extracted via the actual standard response format
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) throw new Error("Empty response from Gemini");
+
+    return parseLayoutJson(text);
+
+  } catch (err) {
+    console.error("[ai] generatePageLayout: Gemini call failed, trying OpenAI fallback —", err);
+    return (await generateLayoutViaOpenAI(fullPrompt)) ?? buildDefaultContent(tenant);
+  }
+}
+
+export type OnboardingContent = {
+  faq: { question: string; answer: string }[];
+  checklist: string;
+  adCopy: string;
+};
+
+// Runs once at onboarding (or on demand from Settings) to draft the FAQ,
+// checklist page, and starter ad copy from a few basic company inputs —
+// the fastest live-demo moment in the product, per the PRD.
+export async function generateOnboardingContent(tenant: Tenant): Promise<OnboardingContent> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  const fallback = onboardingFallback(tenant);
+  if (!apiKey) {
+    console.error("[ai] generateOnboardingContent: GEMINI_API_KEY is not set in this environment");
+    return fallback;
+  }
+
+  const prompt = `Write onboarding content for a UK removal company's website called "${tenant.company_name}". Be warm, trustworthy, concise, no fluff.
+
+Reply with strict JSON only, no markdown: {"faq": [{"question": "...", "answer": "..."} x6], "checklist": "<a moving-day checklist as plain text with newline-separated numbered items, 8-10 items>", "adCopy": "<a short Facebook/Google ad, 2-3 sentences, with a clear call to action>"}`;
+
+  try {
+    const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{ text: prompt }]
+            }],
+            generationConfig: {
+              responseMimeType: "application/json"
+            }
+          })
+        }
+    );
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "<unreadable body>");
+      throw new Error(`Gemini API ${res.status}: ${body}`);
+    }
+
+    const data = await res.json();
+
+    // UPDATED: Directly extract the string using the actual response object schema
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) throw new Error("Empty response from Gemini");
+
+    const parsed = JSON.parse(text);
+
+    return {
+      faq: Array.isArray(parsed.faq) ? parsed.faq : fallback.faq,
+      checklist: parsed.checklist ?? fallback.checklist,
+      adCopy: parsed.adCopy ?? fallback.adCopy,
+    };
+  } catch (err) {
+    console.error("[ai] generateOnboardingContent: Gemini call failed, using fallback —", err);
+    return fallback;
+  }
+}
+
+// Cheap, fast model for the public-facing funnel chat widget — cost-sensitive
+// since every website visitor can trigger it, unlike the staff-only features.
+export async function answerFunnelQuestion(
+    tenant: Tenant,
+    faq: { question: string; answer: string }[],
+    message: string,
+    history: { role: "user" | "assistant"; text: string }[]
+): Promise<string> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  const fallback = `Thanks for your message! For a fast answer, use the "Get my estimate" button above, or call ${tenant.company_name} directly on ${tenant.branding?.phone ?? "the number at the top of this page"}.`;
+  if (!apiKey) {
+    console.error("[ai] answerFunnelQuestion: GEMINI_API_KEY is not set in this environment");
+    return fallback;
+  }
+
+  const faqContext = faq.map((f) => `Q: ${f.question}\nA: ${f.answer}`).join("\n\n");
+  const historyText = history.slice(-6).map((h) => `${h.role === "user" ? "Visitor" : "You"}: ${h.text}`).join("\n");
+  const prompt = `You are a friendly, concise chat assistant on ${tenant.company_name}'s (a UK removal company) website. Answer the visitor's question in 1-3 short sentences. If you don't know, suggest they use the "Get my estimate" button or call. Never invent a price. Company FAQ for context:\n${faqContext}\n\nConversation so far:\n${historyText}\n\nVisitor: ${message}\nYou:`;
+
+  try {
+    const res = await fetch(
+        // UPDATED: Points to Gemini 1.5 Flash-8B, the actual high-speed, cost-effective model
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{ text: prompt }]
+            }]
+            // No generationConfig needed here since we want standard text output
+          })
+        }
+    );
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "<unreadable body>");
+      throw new Error(`Gemini API ${res.status}: ${body}`);
+    }
+
+    const data = await res.json();
+
+    // UPDATED: Response properties mapped correctly
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    return text?.trim() || fallback;
+
+  } catch (err) {
+    console.error("[ai] answerFunnelQuestion: Gemini call failed, using fallback —", err);
+    return fallback;
+  }
+}
+
+function onboardingFallback(tenant: Tenant): OnboardingContent {
+  const name = tenant.company_name;
+  return {
+    faq: [
+      { question: "Is the online price a fixed quote?", answer: `No — it's an instant guide based on your move. A member of the ${name} team reviews every enquiry and confirms the exact price before anything is booked.` },
+      { question: "How quickly will I hear back?", answer: "We aim to confirm your exact price within a few hours during business hours." },
+      { question: "Is there any obligation?", answer: "None. Getting a quote is free and there's no obligation to book." },
+      { question: "What areas do you cover?", answer: `${name} covers local moves and can arrange UK-wide relocations on request.` },
+      { question: "Do you offer packing?", answer: "Yes — let us know when you request your quote and we'll include it in your price." },
+      { question: "How do I book?", answer: "Once your price is confirmed, just reply to your confirmation email or call us to lock in your date." },
+    ],
+    checklist: "1. Book your move date as early as possible\n2. Declutter before packing\n3. Use sturdy boxes and label by room\n4. Pack an essentials bag for moving day\n5. Confirm parking access at both addresses\n6. Redirect your post and update your address\n7. Take meter readings before you leave\n8. Keep valuables and documents with you",
+    adCopy: `Moving house? ${name} gets you a real price in 60 seconds — no phone calls, no obligation. Get your free instant estimate today.`,
+  };
+}
+
+function ruleBasedFallback(quote: Quote, tenant: Tenant): LeadScoreResult {
+  let score = 50;
+  if (quote.customer_email && quote.customer_phone) score += 15;
+  if (quote.move_date) score += 15;
+  const hoursSinceUpdate = (Date.now() - new Date(quote.updated_at).getTime()) / (1000 * 60 * 60);
+  if (hoursSinceUpdate > 48) score -= 20;
+  if (quote.status === "confirmed" || quote.status === "sent") score += 10;
+
+  return {
+    score: Math.max(0, Math.min(100, score)),
+    factors: { note: "Rule-based estimate (set GEMINI_API_KEY for AI scoring)" },
+    followUpDraft: `Hi ${quote.customer_name ?? "there"}, just checking in about your move from ${quote.from_postcode} to ${quote.to_postcode} — happy to answer any questions or lock in your date. — ${tenant.company_name}`,
+  };
+}
