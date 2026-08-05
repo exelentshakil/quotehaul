@@ -42,23 +42,34 @@ Reply with strict JSON only, no markdown: {"score": <0-100 integer>, "reasons": 
 
   try {
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { responseMimeType: "application/json" },
-        }),
-      }
+        // UPDATED: Standardized to the recommended active interactions endpoint
+        `https://googleapis.com{apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "gemini-3.6-flash", // UPDATED: Upgraded to active mainline model
+            input: prompt,             // UPDATED: Flat input field
+
+            // UPDATED: Modern configuration format required for JSON generation
+            response_format: {
+              mime_type: "application/json"
+            }
+          })
+        }
     );
+
     if (!res.ok) {
       const body = await res.text().catch(() => "<unreadable body>");
       throw new Error(`Gemini API ${res.status}: ${body}`);
     }
+
     const data = await res.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    // UPDATED: Extracted via the new direct output_text helper property
+    const text = data.output_text;
     const parsed = JSON.parse(text);
+
     return {
       score: Math.max(0, Math.min(100, Math.round(parsed.score))),
       factors: { reasons: parsed.reasons?.join("; ") ?? "" },
@@ -68,6 +79,7 @@ Reply with strict JSON only, no markdown: {"score": <0-100 integer>, "reasons": 
     console.error("[ai] scoreLeadAndDraftFollowUp: Gemini call failed, using fallback —", err);
     return fallback;
   }
+
 }
 
 // Builds the shared prompt for both providers — pulls in every bit of real
@@ -144,23 +156,38 @@ export async function generatePageLayout(tenant: Tenant, prompt: string, rateCon
 
   try {
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts: [{ text: fullPrompt }] }], generationConfig: { responseMimeType: "application/json" } }),
-      }
+        // UPDATED: Points to the recommended active interactions endpoint
+        `https://googleapis.com{apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "gemini-3.6-flash", // UPDATED: Upgraded to active mainline model
+            input: fullPrompt,         // UPDATED: Simplified flat input field
+
+            // UPDATED: Modern configuration format required for JSON generation
+            response_format: {
+              mime_type: "application/json"
+            }
+          })
+        }
     );
+
     if (!res.ok) {
       const body = await res.text().catch(() => "<unreadable body>");
       throw new Error(`Gemini API ${res.status}: ${body}`);
     }
+
     const data = await res.json();
-    return parseLayoutJson(data.candidates?.[0]?.content?.parts?.[0]?.text);
+
+    // UPDATED: Extracted via the clean, direct output_text property
+    return parseLayoutJson(data.output_text);
+
   } catch (err) {
     console.error("[ai] generatePageLayout: Gemini call failed, trying OpenAI fallback —", err);
     return (await generateLayoutViaOpenAI(fullPrompt)) ?? buildDefaultContent(tenant);
   }
+
 }
 
 export type OnboardingContent = {
@@ -186,19 +213,33 @@ Reply with strict JSON only, no markdown: {"faq": [{"question": "...", "answer":
 
   try {
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json" } }),
-      }
+        // UPDATED: Targets the recommended modern interactions endpoint
+        `https://googleapis.com{apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "gemini-3.6-flash", // UPDATED: Upgraded to active mainline model
+            input: prompt,             // UPDATED: Flat input layout
+
+            // UPDATED: Required structure to enforce JSON format
+            response_format: {
+              mime_type: "application/json"
+            }
+          })
+        }
     );
+
     if (!res.ok) {
       const body = await res.text().catch(() => "<unreadable body>");
       throw new Error(`Gemini API ${res.status}: ${body}`);
     }
+
     const data = await res.json();
-    const parsed = JSON.parse(data.candidates?.[0]?.content?.parts?.[0]?.text);
+
+    // UPDATED: Directly extract the string using the output_text helper property
+    const parsed = JSON.parse(data.output_text);
+
     return {
       faq: Array.isArray(parsed.faq) ? parsed.faq : fallback.faq,
       checklist: parsed.checklist ?? fallback.checklist,
@@ -208,6 +249,7 @@ Reply with strict JSON only, no markdown: {"faq": [{"question": "...", "answer":
     console.error("[ai] generateOnboardingContent: Gemini call failed, using fallback —", err);
     return fallback;
   }
+
 }
 
 // Cheap, fast model for the public-facing funnel chat widget — cost-sensitive
@@ -231,15 +273,28 @@ export async function answerFunnelQuestion(
 
   try {
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`,
-      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) }
+        // UPDATED: Points directly to the modern interactions endpoint
+        `https://googleapis.com{apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          // UPDATED: Flat layout, no nested arrays or deprecated sampling parameters
+          body: JSON.stringify({
+            model: "gemini-3.5-flash-lite", // For highest speed & lower cost
+            input: prompt
+          })
+        }
     );
+
     if (!res.ok) {
       const body = await res.text().catch(() => "<unreadable body>");
       throw new Error(`Gemini API ${res.status}: ${body}`);
     }
+
     const data = await res.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || fallback;
+    // UPDATED: Response properties are mapped to the streamlined output_text helper
+    return data.output_text?.trim() || fallback;
+
   } catch (err) {
     console.error("[ai] answerFunnelQuestion: Gemini call failed, using fallback —", err);
     return fallback;
