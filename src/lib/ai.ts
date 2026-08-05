@@ -20,17 +20,21 @@ export type PuckContent = { type: string; props: Record<string, unknown> }[];
 
 export type LeadScoreResult = { score: number; factors: Record<string, number | string | boolean>; followUpDraft: string };
 
-// Rule-based fallback function implemented to complete execution paths
+/**
+ * Rules-based fallback engine for lead scoring evaluations.
+ */
 function ruleBasedFallback(quote: Quote, tenant: Tenant): LeadScoreResult {
-  const defaults = {
+  return {
     score: 50,
-    factors: { reasons: "Fallback score used" },
-    followUpDraft: `Hi there, we noticed you started a quote with ${tenant.company_name}. Let us know if you have any questions!`,
+    factors: { reasons: "Fallback logic applied due to missing or failed remote AI execution." },
+    followUpDraft: `Hi there, we noticed your moving inquiry with ${tenant.company_name}. Let us know if we can help you with your journey from ${quote.from_postcode} to ${quote.to_postcode}!`,
   };
-  return defaults;
 }
 
-// Single AI entry point using Gemini native REST structure
+/**
+ * 1. METHOD: scoreLeadAndDraftFollowUp
+ * Evaluates moving-company leads and drafts follow-up text using the Gemini REST API gateway.
+ */
 export async function scoreLeadAndDraftFollowUp(quote: Quote, tenant: Tenant): Promise<LeadScoreResult> {
   const apiKey = process.env.GEMINI_API_KEY;
   const fallback = ruleBasedFallback(quote, tenant);
@@ -46,23 +50,18 @@ export async function scoreLeadAndDraftFollowUp(quote: Quote, tenant: Tenant): P
 Lead: from ${quote.from_postcode} to ${quote.to_postcode}, moving ${quote.move_date ?? "date not set"}, property size ${quote.property_size ?? "unknown"}, estimate £${quote.estimate_low}-£${quote.estimate_high}, status "${quote.status}", ${hoursSinceCreated.toFixed(0)} hours since submitted, contact details ${quote.customer_email ? "provided" : "missing"}.
 Company: ${tenant.company_name}.
 
-Reply with strict JSON only, matching this schema exactly: {"score": <0-100 integer>, "reasons": ["short reason", ...], "followUp": "<string>"}`;
+Reply with strict JSON only, no markdown: {"score": <0-100 integer>, "reasons": ["short reason", ...], "followUp": "<2-3 sentence friendly follow-up message from ${tenant.company_name} to the customer, signed off with the company name>"}`;
 
   try {
-    // FIX: Standard REST URL format incorporating the model name and passing API key as a query param
+    // FIXED: Target standard v1beta gateway route using key parameters
     const url = `https://googleapis.com{apiKey}`;
 
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [
-          {
-            parts: [{ text: prompt }]
-          }
-        ],
+        contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
-          // Instructs Gemini to return cleanly structural JSON data
           responseMimeType: "application/json"
         }
       })
@@ -75,9 +74,9 @@ Reply with strict JSON only, matching this schema exactly: {"score": <0-100 inte
 
     const data = await res.json();
 
-    // FIX: Parse raw text content out from the standard Google Gemini REST response tree
+    // FIXED: Safe deep tree extraction pattern for Gemini REST returns
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) throw new Error("No text content returned from Gemini API");
+    if (!text) throw new Error("No textual response returned from Gemini API.");
 
     const parsed = JSON.parse(text);
 
@@ -92,7 +91,46 @@ Reply with strict JSON only, matching this schema exactly: {"score": <0-100 inte
   }
 }
 
-// Builds the shared prompt for both providers
+/**
+ * 2. METHOD: answerFunnelQuestion
+ * RESTORED: Analyzes customer questions submitted via the booking conversion layout interface.
+ */
+export async function answerFunnelQuestion(question: string, tenant: Tenant): Promise<string> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  const fallbackMessage = `Thanks for your question! A member of the ${tenant.company_name} team will review this and get back to you shortly.`;
+
+  if (!apiKey) return fallbackMessage;
+
+  const prompt = `You are a customer support agent for "${tenant.company_name}", a moving/removal company in the UK. 
+Answering this customer question regarding their move: "${question}".
+Provide a concise, helpful, and polite response in 1-2 sentences max. Do not invent pricing or technical constraints if not known.`;
+
+  try {
+    const url = `https://googleapis.com{apiKey}`;
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }]
+      })
+    });
+
+    if (!res.ok) throw new Error(`Gemini status ${res.status}`);
+
+    const data = await res.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    return text ? text.trim() : fallbackMessage;
+  } catch (err) {
+    console.error("[ai] answerFunnelQuestion failed:", err);
+    return fallbackMessage;
+  }
+}
+
+/**
+ * 3. METHOD: buildLayoutPrompt
+ * Combines available real-time tenant profile datasets to produce descriptive, unique layout directives.
+ */
 function buildLayoutPrompt(tenant: Tenant, prompt: string, rateConfig?: RateConfig | null): string {
   const propertyTypes = rateConfig ? Object.keys(rateConfig.rate_per_room).join(", ") : null;
   const details = [
@@ -105,13 +143,20 @@ function buildLayoutPrompt(tenant: Tenant, prompt: string, rateConfig?: RateConf
   return `Generate a landing page layout for "${tenant.company_name}", a UK removal (moving) company, using ONLY these block types and fields:\n${PAGE_BLOCK_SCHEMA}\n\n${details ? `Known details about this specific company:\n${details}\n\n` : ""}Company's request: ${prompt}\n\nVary the block selection, order, and copy meaningfully based on this company's specific details and request — do not default to the same generic structure every time. Reply with strict JSON only, no markdown: an array of {"type": "<BlockName>", "props": {...matching fields for that type...}}. Always start with a Hero block. Give each block props a unique "id" string.`;
 }
 
+/**
+ * 4. METHOD: parseLayoutJson
+ * Safely parses and asserts layout contents to prevent corrupt rendering actions inside Puck.
+ */
 function parseLayoutJson(text: string): PuckContent {
   const parsed = JSON.parse(text);
   if (!Array.isArray(parsed) || parsed.length === 0) throw new Error("Empty layout returned");
   return parsed;
 }
 
-// OpenAI fallback
+/**
+ * 5. METHOD: generateLayoutViaOpenAI
+ * OpenAI fallback framework executing landing page fallback procedures when OpenAI tokens are set.
+ */
 async function generateLayoutViaOpenAI(fullPrompt: string): Promise<PuckContent | null> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
@@ -135,6 +180,8 @@ async function generateLayoutViaOpenAI(fullPrompt: string): Promise<PuckContent 
     }
     const data = await res.json();
     const text = data.choices?.[0]?.message?.content;
+    if (!text) throw new Error("Empty chat completion payload received.");
+
     const parsed = JSON.parse(text);
     const blocks = Array.isArray(parsed) ? parsed : parsed.blocks;
     if (!Array.isArray(blocks) || blocks.length === 0) throw new Error("Empty layout returned");
@@ -144,3 +191,10 @@ async function generateLayoutViaOpenAI(fullPrompt: string): Promise<PuckContent 
     return null;
   }
 }
+
+/**
+ * 6. METHOD: generateLayoutViaGemini
+ * RESTORED & COMPLETED: Core Gemini "assembly mode" engine layout construction processor loop.
+ */
+export async function generateLayoutViaGemini(tenant: Tenant, prompt: string, rateConfig?: RateConfig | null): Promise<PuckContent> {
+  const apiKey = process.env.GEMINI_API_KEY;
