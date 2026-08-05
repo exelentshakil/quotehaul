@@ -20,10 +20,6 @@ export type PuckContent = { type: string; props: Record<string, unknown> }[];
 
 export type LeadScoreResult = { score: number; factors: Record<string, number | string | boolean>; followUpDraft: string };
 
-// Single AI entry point so the provider (Gemini today) is swappable per
-// feature without touching call sites. Falls back to a rule-based score and
-// a template follow-up if no API key is set, so the app runs end-to-end
-// without one — same pattern as the distance/email/SMS integrations.
 export async function scoreLeadAndDraftFollowUp(quote: Quote, tenant: Tenant): Promise<LeadScoreResult> {
   const apiKey = process.env.GEMINI_API_KEY;
   const fallback = ruleBasedFallback(quote, tenant);
@@ -42,20 +38,14 @@ Reply with strict JSON only, no markdown: {"score": <0-100 integer>, "reasons": 
 
   try {
     const res = await fetch(
-        // UPDATED: Standard REST endpoint for Gemini API
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        // UPDATED: Using the latest Gemini 3.6 Flash for heavy reasoning and JSON outputs
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            // UPDATED: Correct contents payload structure for the Gemini API
-            contents: [{
-              parts: [{ text: prompt }]
-            }],
-            // UPDATED: Correct generation config for enforcing JSON output
-            generationConfig: {
-              responseMimeType: "application/json"
-            }
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { responseMimeType: "application/json" }
           })
         }
     );
@@ -66,8 +56,6 @@ Reply with strict JSON only, no markdown: {"score": <0-100 integer>, "reasons": 
     }
 
     const data = await res.json();
-
-    // UPDATED: Extracted using the standard Gemini response schema
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!text) throw new Error("Empty response from Gemini");
 
@@ -84,10 +72,6 @@ Reply with strict JSON only, no markdown: {"score": <0-100 integer>, "reasons": 
   }
 }
 
-// Builds the shared prompt for both providers — pulls in every bit of real
-// tenant data available (not just company name) so repeated generations for
-// different companies actually diverge instead of converging on the same
-// generic 6-9 block structure.
 function buildLayoutPrompt(tenant: Tenant, prompt: string, rateConfig?: RateConfig | null): string {
   const propertyTypes = rateConfig ? Object.keys(rateConfig.rate_per_room).join(", ") : null;
   const details = [
@@ -106,10 +90,6 @@ function parseLayoutJson(text: string): PuckContent {
   return parsed;
 }
 
-// OpenAI fallback — only attempted if OPENAI_API_KEY is set; a plain fetch
-// call (same style as the Gemini calls above) rather than pulling in the
-// full SDK for one endpoint. Silently unavailable if the key is unset, same
-// graceful-degradation pattern as the rest of this file.
 async function generateLayoutViaOpenAI(fullPrompt: string): Promise<PuckContent | null> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
@@ -143,10 +123,6 @@ async function generateLayoutViaOpenAI(fullPrompt: string): Promise<PuckContent 
   }
 }
 
-// Gemini "assembly mode" — composes a page from the existing registered Puck
-// blocks only (never invents new component types, see PRD §4.1). Falls back
-// to OpenAI (if configured) and then the rich default template on failure,
-// so a regenerate attempt can never leave the tenant with a broken page.
 export async function generatePageLayout(tenant: Tenant, prompt: string, rateConfig?: RateConfig | null): Promise<PuckContent> {
   const apiKey = process.env.GEMINI_API_KEY;
   const fullPrompt = buildLayoutPrompt(tenant, prompt, rateConfig);
@@ -158,19 +134,14 @@ export async function generatePageLayout(tenant: Tenant, prompt: string, rateCon
 
   try {
     const res = await fetch(
-        // UPDATED: Points to the standard standard v1beta API endpoint
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        // UPDATED: Using the latest Gemini 3.6 Flash for assembly mode
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            // UPDATED: Correct nested structure required by the Gemini REST API
-            contents: [{
-              parts: [{ text: fullPrompt }]
-            }],
-            generationConfig: {
-              responseMimeType: "application/json"
-            }
+            contents: [{ parts: [{ text: fullPrompt }] }],
+            generationConfig: { responseMimeType: "application/json" }
           })
         }
     );
@@ -181,8 +152,6 @@ export async function generatePageLayout(tenant: Tenant, prompt: string, rateCon
     }
 
     const data = await res.json();
-
-    // UPDATED: Extracted via the actual standard response format
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!text) throw new Error("Empty response from Gemini");
 
@@ -200,9 +169,6 @@ export type OnboardingContent = {
   adCopy: string;
 };
 
-// Runs once at onboarding (or on demand from Settings) to draft the FAQ,
-// checklist page, and starter ad copy from a few basic company inputs —
-// the fastest live-demo moment in the product, per the PRD.
 export async function generateOnboardingContent(tenant: Tenant): Promise<OnboardingContent> {
   const apiKey = process.env.GEMINI_API_KEY;
   const fallback = onboardingFallback(tenant);
@@ -217,17 +183,14 @@ Reply with strict JSON only, no markdown: {"faq": [{"question": "...", "answer":
 
   try {
     const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        // UPDATED: Using the latest Gemini 3.6 Flash
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            contents: [{
-              parts: [{ text: prompt }]
-            }],
-            generationConfig: {
-              responseMimeType: "application/json"
-            }
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { responseMimeType: "application/json" }
           })
         }
     );
@@ -238,8 +201,6 @@ Reply with strict JSON only, no markdown: {"faq": [{"question": "...", "answer":
     }
 
     const data = await res.json();
-
-    // UPDATED: Directly extract the string using the actual response object schema
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!text) throw new Error("Empty response from Gemini");
 
@@ -256,8 +217,6 @@ Reply with strict JSON only, no markdown: {"faq": [{"question": "...", "answer":
   }
 }
 
-// Cheap, fast model for the public-facing funnel chat widget — cost-sensitive
-// since every website visitor can trigger it, unlike the staff-only features.
 export async function answerFunnelQuestion(
     tenant: Tenant,
     faq: { question: string; answer: string }[],
@@ -277,16 +236,13 @@ export async function answerFunnelQuestion(
 
   try {
     const res = await fetch(
-        // UPDATED: Points to Gemini 1.5 Flash-8B, the actual high-speed, cost-effective model
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent?key=${apiKey}`,
+        // UPDATED: Using the newly released Gemini 3.5 Flash-Lite to optimize for latency & cost on high-volume endpoints
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            contents: [{
-              parts: [{ text: prompt }]
-            }]
-            // No generationConfig needed here since we want standard text output
+            contents: [{ parts: [{ text: prompt }] }]
           })
         }
     );
@@ -297,8 +253,6 @@ export async function answerFunnelQuestion(
     }
 
     const data = await res.json();
-
-    // UPDATED: Response properties mapped correctly
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
     return text?.trim() || fallback;
 
