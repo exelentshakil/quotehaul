@@ -3,7 +3,7 @@ import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getDistance } from "@/lib/distance";
 import { calculateEstimate } from "@/lib/pricing";
-import { hasFeature, isOverLeadCap } from "@/lib/plans";
+import { hasFeature } from "@/lib/plans";
 import { notifyTenantOfNewLead, sendCustomerReceipt } from "@/lib/notifications";
 import type { Plan, RateConfig, Tenant } from "@/types/database";
 
@@ -45,23 +45,6 @@ export async function POST(req: Request) {
     const { data: plan } = await admin.from("plans").select("*").eq("id", tenant.plan_id).single<Plan>();
     const { data: rateConfig } = await admin.from("rate_configs").select("*").eq("tenant_id", tenant.id).single<RateConfig>();
     if (!rateConfig) return NextResponse.json({ error: "This company hasn't finished setup yet" }, { status: 400 });
-
-    // Free-tier lead cap check
-    const startOfMonth = new Date();
-    startOfMonth.setUTCDate(1);
-    startOfMonth.setUTCHours(0, 0, 0, 0);
-    const { count } = await admin
-      .from("quotes")
-      .select("id", { count: "exact", head: true })
-      .eq("tenant_id", tenant.id)
-      .gte("created_at", startOfMonth.toISOString());
-
-    if (isOverLeadCap(plan, count ?? 0)) {
-      return NextResponse.json(
-        { error: "This company has reached its monthly lead limit. Please call them directly." },
-        { status: 429 }
-      );
-    }
 
     const distance = await getDistance(input.fromPostcode, input.toPostcode);
     const estimate = calculateEstimate({

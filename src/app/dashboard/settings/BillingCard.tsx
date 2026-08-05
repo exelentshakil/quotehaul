@@ -5,27 +5,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-function daysLeft(trialEndsAt: string | null) {
-  if (!trialEndsAt) return null;
-  const ms = new Date(trialEndsAt).getTime() - Date.now();
-  return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
-}
-
 export default function BillingCard({
   planSlug,
   planName,
   subscriptionStatus,
-  trialEndsAt,
 }: {
   planSlug: string;
   planName: string;
   subscriptionStatus: string | null;
-  trialEndsAt: string | null;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const isTrialing = subscriptionStatus === "trialing";
-  const remaining = isTrialing ? daysLeft(trialEndsAt) : null;
+  const isInactive = planSlug !== "paid" || subscriptionStatus !== "active";
 
   async function go(endpoint: "/api/stripe/checkout" | "/api/stripe/portal") {
     setLoading(true);
@@ -41,23 +32,24 @@ export default function BillingCard({
   }
 
   return (
-    <Card className="shadow-card">
+    <Card className={isInactive ? "border-danger/40 shadow-card" : "shadow-card"}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           Billing
-          {isTrialing && <Badge variant="secondary">Trial · {remaining ?? 0} day{remaining === 1 ? "" : "s"} left</Badge>}
+          {isInactive && <Badge variant="secondary" className="border-danger/30 bg-danger/10 text-danger">Inactive</Badge>}
         </CardTitle>
       </CardHeader>
       <CardContent>
         <p className="mb-4 text-sm text-muted-foreground">
           Current plan: <strong className="text-foreground">{planName}</strong>
-          {planSlug === "free" && !isTrialing && " — capped at 20 leads/month, QuoteHaul branding shown, AI/domain/payments locked."}
-          {isTrialing && " — you have full Pro access. Your card is charged automatically when the trial ends unless you cancel."}
+          {isInactive
+            ? " — your subscription is inactive. Reactivate to regain dashboard access; your public quote funnel keeps working in the meantime."
+            : " — £97/month, everything included."}
         </p>
         {error && <p className="mb-3 text-sm text-danger">{error}</p>}
-        {planSlug === "free" && !isTrialing ? (
+        {isInactive ? (
           <Button disabled={loading} onClick={() => go("/api/stripe/checkout")}>
-            {loading ? "Redirecting..." : "Upgrade to Pro — £97/mo"}
+            {loading ? "Redirecting..." : "Reactivate — £97/mo"}
           </Button>
         ) : (
           <Button variant="outline" disabled={loading} onClick={() => go("/api/stripe/portal")}>

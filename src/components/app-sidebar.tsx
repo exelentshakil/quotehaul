@@ -3,19 +3,34 @@
 import * as React from "react";
 import Link from "next/link";
 import { Truck, LayoutDashboard, KanbanSquare, CalendarClock, Settings, ExternalLink, Users, Receipt, UserCog } from "lucide-react";
-import { NavMain, type NavMainItem } from "@/components/nav-main";
+import { NavMain, type NavMainItem, type NavGroup } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarRail } from "@/components/ui/sidebar";
 import { canAccess, type Membership } from "@/lib/permissions";
 
-const NAV_ITEMS: (NavMainItem & { permKey: Parameters<typeof canAccess>[1] })[] = [
-  { title: "Overview", url: "/dashboard", icon: LayoutDashboard, permKey: "overview" },
-  { title: "Leads", url: "/dashboard/leads", icon: KanbanSquare, permKey: "leads" },
-  { title: "Customers", url: "/dashboard/customers", icon: Users, permKey: "customers" },
-  { title: "Invoices", url: "/dashboard/invoices", icon: Receipt, permKey: "invoices" },
-  { title: "Capacity", url: "/dashboard/capacity", icon: CalendarClock, permKey: "capacity" },
-  { title: "Team", url: "/dashboard/team", icon: UserCog, permKey: "team" },
-  { title: "Settings", url: "/dashboard/settings", icon: Settings, permKey: "settings" },
+const NAV_GROUPS: { label: string; items: (NavMainItem & { permKey: Parameters<typeof canAccess>[1] })[] }[] = [
+  {
+    label: "Pipeline",
+    items: [
+      { title: "Overview", url: "/dashboard", icon: LayoutDashboard, permKey: "overview" },
+      { title: "Leads", url: "/dashboard/leads", icon: KanbanSquare, permKey: "leads" },
+      { title: "Customers", url: "/dashboard/customers", icon: Users, permKey: "customers" },
+    ],
+  },
+  {
+    label: "Operations",
+    items: [
+      { title: "Capacity", url: "/dashboard/capacity", icon: CalendarClock, permKey: "capacity" },
+      { title: "Invoices", url: "/dashboard/invoices", icon: Receipt, permKey: "invoices" },
+    ],
+  },
+  {
+    label: "Business",
+    items: [
+      { title: "Team", url: "/dashboard/team", icon: UserCog, permKey: "team" },
+      { title: "Settings", url: "/dashboard/settings", icon: Settings, permKey: "settings" },
+    ],
+  },
 ];
 
 export function AppSidebar({
@@ -34,11 +49,13 @@ export function AppSidebar({
   avatarUrl?: string | null;
   membership: Membership | null;
 }) {
-  const visible = NAV_ITEMS.filter((item) => canAccess(membership, item.permKey));
-  const withBadges = visible.map((item) => (item.title === "Leads" ? { ...item, badge: newLeadsCount } : item));
-  const items = tenantSlug
-    ? [...withBadges, { title: "Public funnel", url: `/${tenantSlug}`, icon: ExternalLink, external: true }]
-    : withBadges;
+  const groups: NavGroup[] = NAV_GROUPS.map((group) => ({
+    label: group.label,
+    items: group.items
+      .filter((item) => canAccess(membership, item.permKey))
+      .map((item) => (item.title === "Leads" ? { ...item, badge: newLeadsCount } : item)),
+  })).filter((group) => group.items.length > 0);
+  const ungrouped: NavMainItem[] = tenantSlug ? [{ title: "Public funnel", url: `/${tenantSlug}`, icon: ExternalLink, external: true }] : [];
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -60,7 +77,7 @@ export function AppSidebar({
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={items} />
+        <NavMain groups={groups} ungrouped={ungrouped} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser companyName={companyName} userEmail={userEmail} tenantSlug={tenantSlug} avatarUrl={avatarUrl} />

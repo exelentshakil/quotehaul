@@ -59,7 +59,7 @@ export function DualFeatureShowcase({
   eyebrow: string;
   title: string;
   body: string;
-  items: { id: string; label: string; title: string; body: string; visual: ReactNode }[];
+  items: { id: string; label: string; title: string; body: string; bullets?: string[]; visual: ReactNode }[];
 }) {
   return (
     <div className="border-y border-border bg-gradient-to-b from-accent/40 to-transparent py-20">
@@ -75,6 +75,15 @@ export function DualFeatureShowcase({
               <p className="text-xs font-semibold uppercase tracking-wide text-primary">{item.label}</p>
               <h3 className="mt-1.5 font-display text-lg font-semibold">{item.title}</h3>
               <p className="mt-2 text-sm text-muted-foreground">{item.body}</p>
+              {item.bullets && (
+                <ul className="mt-3 space-y-1.5">
+                  {item.bullets.map((b) => (
+                    <li key={b} className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                      <Check className="mt-0.5 h-3 w-3 shrink-0 text-primary" /> {b}
+                    </li>
+                  ))}
+                </ul>
+              )}
               <div className="mt-5">{item.visual}</div>
             </div>
           ))}
@@ -209,45 +218,31 @@ export function HowItWorks() {
 export function PricingSection() {
   return (
     <div id="pricing" className="border-t border-border bg-muted/30 py-20">
-      <div className="mx-auto max-w-4xl px-6">
+      <div className="mx-auto max-w-lg px-6">
         <div className="mb-12 text-center">
           <h2 className="font-display text-3xl font-bold">Simple pricing</h2>
-          <p className="mt-2 text-muted-foreground">One plan, everything included. Downgrade to a limited free plan any time you like.</p>
+          <p className="mt-2 text-muted-foreground">One plan, everything included. No caps, no gated features, no free tier to grow out of.</p>
         </div>
-        <div className="grid gap-6 sm:grid-cols-2">
-          <Card className="shadow-card">
-            <CardHeader>
-              <CardTitle>Free</CardTitle>
-              <p className="text-3xl font-bold">£0</p>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                {["Quote funnel + Kanban board", "Up to 20 leads/month", "Email notifications", "“Powered by QuoteHaul” badge"].map((i) => (
-                  <li key={i} className="flex items-center gap-2"><Check className="h-4 w-4 text-primary" /> {i}</li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-          <Card className="border-primary shadow-popover">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Pro</CardTitle>
-                <Badge>Most popular</Badge>
-              </div>
-              <p className="text-3xl font-bold">£97<span className="text-base font-normal text-muted-foreground">/mo</span></p>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                {["Unlimited leads", "Email + SMS notifications", "AI lead scoring + follow-up drafts", "Threaded order messaging, reply by email", "Custom domain, no QuoteHaul branding", "Capacity/calendar, invoicing, page builder"].map((i) => (
-                  <li key={i} className="flex items-center gap-2"><Check className="h-4 w-4 text-primary" /> {i}</li>
-                ))}
-              </ul>
-              <Button asChild className="mt-6 w-full">
-                <Link href="/signup">Get started</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+        <Card className="border-primary shadow-popover">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>QuoteHaul</CardTitle>
+              <Badge>Everything included</Badge>
+            </div>
+            <p className="text-3xl font-bold">£97<span className="text-base font-normal text-muted-foreground">/mo</span></p>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              {["Unlimited leads, no cap", "Email + SMS notifications", "AI lead scoring + follow-up drafts", "Threaded order messaging, reply by email", "Custom domain, no QuoteHaul branding", "Capacity/calendar, invoicing, page builder"].map((i) => (
+                <li key={i} className="flex items-center gap-2"><Check className="h-4 w-4 text-primary" /> {i}</li>
+              ))}
+            </ul>
+            <Button asChild className="mt-6 w-full">
+              <Link href="/signup">Get started</Link>
+            </Button>
+            <p className="mt-3 text-center text-xs text-muted-foreground">Cancel any time, no lock-in contract.</p>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

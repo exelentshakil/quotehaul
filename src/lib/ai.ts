@@ -1,5 +1,5 @@
-import type { Quote, Tenant } from "@/types/database";
-import { RICH_DEFAULT_CONTENT } from "@/lib/puck-config";
+import type { Quote, RateConfig, Tenant } from "@/types/database";
+import { buildDefaultContent } from "@/lib/puck-config";
 
 const PAGE_BLOCK_SCHEMA = `- Hero: heading, subheading, ctaLabel (all text) — always the first block
 - ValueProps: items (comma-separated short claims, no numbers/stats)
@@ -70,18 +70,77 @@ Reply with strict JSON only, no markdown: {"score": <0-100 integer>, "reasons": 
   }
 }
 
+// Builds the shared prompt for both providers — pulls in every bit of real
+// tenant data available (not just company name) so repeated generations for
+// different companies actually diverge instead of converging on the same
+// generic 6-9 block structure.
+function buildLayoutPrompt(tenant: Tenant, prompt: string, rateConfig?: RateConfig | null): string {
+  const propertyTypes = rateConfig ? Object.keys(rateConfig.rate_per_room).join(", ") : null;
+  const details = [
+    tenant.branding?.phone ? `Phone: ${tenant.branding.phone}` : null,
+    propertyTypes ? `Property types this company prices for: ${propertyTypes}` : null,
+    rateConfig?.service_radius_miles ? `Local service radius: ${rateConfig.service_radius_miles} miles` : null,
+    rateConfig?.long_distance_threshold_miles ? `Treats moves over ${rateConfig.long_distance_threshold_miles} miles as long-distance` : null,
+  ].filter(Boolean).join("\n");
+
+  return `Generate a landing page layout for "${tenant.company_name}", a UK removal (moving) company, using ONLY these block types and fields:\n${PAGE_BLOCK_SCHEMA}\n\n${details ? `Known details about this specific company:\n${details}\n\n` : ""}Company's request: ${prompt}\n\nVary the block selection, order, and copy meaningfully based on this company's specific details and request — do not default to the same generic structure every time. Reply with strict JSON only, no markdown: an array of {"type": "<BlockName>", "props": {...matching fields for that type...}}. Always start with a Hero block. Give each block props a unique "id" string.`;
+}
+
+function parseLayoutJson(text: string): PuckContent {
+  const parsed = JSON.parse(text);
+  if (!Array.isArray(parsed) || parsed.length === 0) throw new Error("Empty layout returned");
+  return parsed;
+}
+
+// OpenAI fallback — only attempted if OPENAI_API_KEY is set; a plain fetch
+// call (same style as the Gemini calls above) rather than pulling in the
+// full SDK for one endpoint. Silently unavailable if the key is unset, same
+// graceful-degradation pattern as the rest of this file.
+async function generateLayoutViaOpenAI(fullPrompt: string): Promise<PuckContent | null> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: "Reply with a JSON object of shape {\"blocks\": [...]} where blocks is the requested array. Never wrap in markdown." },
+          { role: "user", content: fullPrompt },
+        ],
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "<unreadable body>");
+      throw new Error(`OpenAI API ${res.status}: ${body}`);
+    }
+    const data = await res.json();
+    const text = data.choices?.[0]?.message?.content;
+    const parsed = JSON.parse(text);
+    const blocks = Array.isArray(parsed) ? parsed : parsed.blocks;
+    if (!Array.isArray(blocks) || blocks.length === 0) throw new Error("Empty layout returned");
+    return blocks;
+  } catch (err) {
+    console.error("[ai] generateLayoutViaOpenAI: OpenAI fallback failed —", err);
+    return null;
+  }
+}
+
 // Gemini "assembly mode" — composes a page from the existing registered Puck
 // blocks only (never invents new component types, see PRD §4.1). Falls back
-// to the rich default template on any failure so a regenerate attempt can
-// never leave the tenant with a broken or empty page.
-export async function generatePageLayout(tenant: Tenant, prompt: string): Promise<PuckContent> {
+// to OpenAI (if configured) and then the rich default template on failure,
+// so a regenerate attempt can never leave the tenant with a broken page.
+export async function generatePageLayout(tenant: Tenant, prompt: string, rateConfig?: RateConfig | null): Promise<PuckContent> {
   const apiKey = process.env.GEMINI_API_KEY;
+  const fullPrompt = buildLayoutPrompt(tenant, prompt, rateConfig);
+
   if (!apiKey) {
     console.error("[ai] generatePageLayout: GEMINI_API_KEY is not set in this environment");
-    return RICH_DEFAULT_CONTENT;
+    return (await generateLayoutViaOpenAI(fullPrompt)) ?? buildDefaultContent(tenant);
   }
-
-  const fullPrompt = `Generate a landing page layout for "${tenant.company_name}", a UK removal (moving) company, using ONLY these block types and fields:\n${PAGE_BLOCK_SCHEMA}\n\nCompany's request: ${prompt}\n\nReply with strict JSON only, no markdown: an array of {"type": "<BlockName>", "props": {...matching fields for that type...}}. Always start with a Hero block. Give each block props a unique "id" string.`;
 
   try {
     const res = await fetch(
@@ -97,12 +156,10 @@ export async function generatePageLayout(tenant: Tenant, prompt: string): Promis
       throw new Error(`Gemini API ${res.status}: ${body}`);
     }
     const data = await res.json();
-    const parsed = JSON.parse(data.candidates?.[0]?.content?.parts?.[0]?.text);
-    if (!Array.isArray(parsed) || parsed.length === 0) throw new Error("Empty layout returned");
-    return parsed;
+    return parseLayoutJson(data.candidates?.[0]?.content?.parts?.[0]?.text);
   } catch (err) {
-    console.error("[ai] generatePageLayout: Gemini call failed, using default template —", err);
-    return RICH_DEFAULT_CONTENT;
+    console.error("[ai] generatePageLayout: Gemini call failed, trying OpenAI fallback —", err);
+    return (await generateLayoutViaOpenAI(fullPrompt)) ?? buildDefaultContent(tenant);
   }
 }
 

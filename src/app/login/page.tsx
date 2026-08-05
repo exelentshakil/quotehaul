@@ -56,7 +56,7 @@ export default function LoginPage() {
               </Button>
             </form>
             <p className="mt-4 text-center text-sm text-muted-foreground">
-              No account yet? <Link href="/signup" className="text-primary hover:underline">Start your free trial</Link>
+              No account yet? <Link href="/signup" className="text-primary hover:underline">Get started</Link>
             </p>
           </CardContent>
         </Card>

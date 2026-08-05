@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSessionUser, getTenantMembership } from "@/lib/dal";
 import type { PageLayout, Plan, Tenant } from "@/types/database";
 import { PuckEditor } from "@/components/puck-editor";
-import { RICH_DEFAULT_CONTENT } from "@/lib/puck-config";
+import { buildDefaultContent } from "@/lib/puck-config";
 import { searchPhoto, injectHeroPhoto } from "@/lib/unsplash";
 
 export default async function PageBuilderPage() {
@@ -41,7 +41,7 @@ export default async function PageBuilderPage() {
   // plain gradient placeholder, so the page looks finished, not started.
   if (versions.length === 0) {
     const photo = await searchPhoto("moving company house removal truck");
-    const content = injectHeroPhoto(RICH_DEFAULT_CONTENT, photo);
+    const content = injectHeroPhoto(buildDefaultContent(tenant), photo);
     const { data: version } = await supabase
       .from("page_layouts")
       .insert({ tenant_id: tenant.id, name: "Original", data: { content, root: {}, zones: {} } })

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { notifyNewMessage } from "@/lib/notifications";
+import { sendInvoiceEmail } from "@/lib/notifications";
 import type { Quote, Tenant } from "@/types/database";
 
 // Creates a branded invoice record, then posts a link to it into the same
@@ -45,7 +45,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     body: messageBody,
   });
 
-  await notifyNewMessage(tenant, quote, "staff", messageBody, quote.customer_email);
+  await sendInvoiceEmail(tenant, quote, invoiceUrl, amount, label);
 
   return NextResponse.json({ ok: true, invoiceUrl });
 }
